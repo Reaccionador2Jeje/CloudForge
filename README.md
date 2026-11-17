@@ -359,3 +359,17 @@ Authenticated installation-plan endpoints are available:
 - `POST /v1/compute/installations`
 
 Create requests reference an existing `instance_id`, a Windows Server profile (`windows-server-2025` or `windows-server-2022`), and a matching installer catalog slug. Records remain `planned`, expose blocker identifiers, and enforce `execution_enabled = false`. This is a persistent plan registry only; no hypervisor, worker, disk creation, media download, or guest installation is active.
+
+
+### QEMU/KVM host preflight
+
+The Node Agent includes an initial local read-only QEMU/libvirt adapter.
+Run `cloudforge-node-agent --compute-preflight` on a Linux compute host to
+check `/dev/kvm`, the QEMU x86_64 binary, `virsh`, the system libvirt
+connection, and defined domain names. The command emits JSON and exits with
+code 2 if prerequisites are missing.
+
+This is not VM provisioning and does not perform lifecycle operations or
+change host configuration. Node enrollment/mTLS, tenant isolation, scheduler,
+storage, and networking must be completed before remote VM management is
+enabled. See [Compute architecture](docs/architecture/compute.md).
