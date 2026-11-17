@@ -4,6 +4,7 @@ mod compute;
 mod config;
 mod error;
 mod instances;
+mod images;
 mod nodes;
 
 use std::net::SocketAddr;
@@ -127,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         state: state.clone(),
         resource: "instances",
     };
-    let node_gate = auth::PermissionGate {
+    let image_gate = auth::PermissionGate {\n        state: state.clone(),\n        resource: "images",\n    };\n    let node_gate = auth::PermissionGate {
         state: state.clone(),
         resource: "nodes",
     };
@@ -156,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )),
             )
             .route("/v1/system/components", get(components::list_components))
-            .route("/v1/compute/providers", get(compute::list_providers))
+            .route("/v1/compute/providers", get(compute::list_providers))\n            .route(\n                "/v1/images",\n                get(images::list_images).post(images::create_image).route_layer(\n                    middleware::from_fn_with_state(image_gate, auth::require_permission),\n                ),\n            )
             .route(
                 "/v1/instances",
                 get(list_instances).post(create_instance).route_layer(
