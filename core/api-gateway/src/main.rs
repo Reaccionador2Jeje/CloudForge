@@ -130,7 +130,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         state: state.clone(),
         resource: "instances",
     };
-    let installation_gate = auth::PermissionGate {\n        state: state.clone(),\n        resource: "installations",\n    };\n    let image_gate = auth::PermissionGate {
+    let installation_gate = auth::PermissionGate {
+        state: state.clone(),
+        resource: "installations",
+    };
+    let image_gate = auth::PermissionGate {
         state: state.clone(),
         resource: "images",
     };
