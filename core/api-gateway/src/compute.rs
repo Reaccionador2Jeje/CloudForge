@@ -6,9 +6,6 @@ use serde::Serialize;
 #[serde(rename_all = "snake_case")]
 pub enum ProviderState {
     Planned,
-    Available,
-    Degraded,
-    Unavailable,
 }
 
 /// Public, truthful description of a compute provider.
