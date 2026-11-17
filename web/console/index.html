@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1020">
   <title>CloudForge Console</title>
-  <link rel="stylesheet" href="/styles.css">\n
+  <link rel="stylesheet" href="/styles.css">
+
 </head>
 <body>
 <div class="shell">
@@ -17,7 +18,8 @@
       <button data-page="nodes"><span class="nav-icon">⌘</span>Nodos</button>
       <button data-page="diagnostics"><span class="nav-icon">⌁</span>Diagnóstico</button>
     </nav>
-    <div class="side-divider"></div><div class="side-caption">Plataforma</div><nav class="nav" aria-label="Componentes"><button data-page="components"><span class="nav-icon">◫</span>Componentes</button></nav>\n    <div class="side-note">ATDEV DEV · CLOUD INFRASTRUCTURE<br>Console 0.5 · Development</div>
+    <div class="side-divider"></div><div class="side-caption">Plataforma</div><nav class="nav" aria-label="Componentes"><button data-page="components"><span class="nav-icon">◫</span>Componentes</button></nav>
+    <div class="side-note">ATDEV DEV · CLOUD INFRASTRUCTURE<br>Console 0.5 · Development</div>
   </aside>
   <main>
     <header class="top">
@@ -163,7 +165,8 @@ async function loadComponents(){
 $('component-search')?.addEventListener('input',renderComponents);
 $('component-state')?.addEventListener('change',renderComponents);
 $('refresh-components')?.addEventListener('click',loadComponents);
-\nasync function diagnostics(){
+
+async function diagnostics(){
   const target=$('diagnostic-rows');target.innerHTML='';
   if(DEMO_MODE){[['Consola estática','OK · servida por Cloudflare Workers'],['API Gateway','No conectado · sin solicitud enviada'],['PostgreSQL','No conectado · sin solicitud enviada'],['Instancias','Muestras simuladas · no consultadas']].forEach(([path,result])=>{const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');value.className='pill warn';value.textContent=result;row.append(name,value);target.append(row)});return;}
   for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
