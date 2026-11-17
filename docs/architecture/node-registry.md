@@ -42,3 +42,15 @@ authorization are not implemented.
    replayed challenges, revoked nodes, and heartbeat expiry.
 
 Until those gates pass, the table is schema groundwork only.
+
+## Local read-only API view
+
+The API Gateway exposes `GET /v1/nodes` when PostgreSQL is configured. It
+returns node ID, name, lifecycle status, agent version, last authenticated
+heartbeat timestamp, and creation time. It deliberately omits certificate
+fingerprints and has no write operations.
+
+This endpoint is part of the local development control plane, not a remote
+multi-tenant API. Keep the gateway bound to loopback. Authentication and
+authorization must be implemented before exposing node or instance data beyond
+the trusted local host.
