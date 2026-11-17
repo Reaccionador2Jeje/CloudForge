@@ -18,6 +18,8 @@ pub enum ApiError {
     Unauthorized,
     #[error("The requested resource was not found: {0}")]
     NotFound(String),
+    #[error("The request conflicts with current resource state: {0}")]
+    Conflict(String),
     #[error("The account lacks the required permission")]
     Forbidden,
     #[error("Administrator bootstrap is not configured")]
@@ -44,6 +46,7 @@ impl IntoResponse for ApiError {
                 "A valid bearer session is required".to_owned(),
             ),
             Self::NotFound(message) => (StatusCode::NOT_FOUND, "not_found", message),
+            Self::Conflict(message) => (StatusCode::CONFLICT, "conflict", message),
             Self::Forbidden => (
                 StatusCode::FORBIDDEN,
                 "forbidden",
