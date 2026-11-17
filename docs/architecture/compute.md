@@ -313,3 +313,34 @@ tenant-supplied counters. Concurrent allocation requires a transactional
 reservation ledger with row locking or equivalent serialization, idempotency
 keys, release/expiry handling, audit events, and a fresh node-capacity check.
 Both `execution_enabled` and `reservation_created` remain false.
+
+
+## Persistent storage quotas and reservations
+
+Migration `0008_storage_quotas_reservations.sql` adds per-user storage quotas,
+an idempotent reservation ledger, and a metadata-only volume registry. New
+accounts receive a default quota of 100 GiB; existing accounts are backfilled.
+Quota accounting includes volumes in provisioning, ready, or deleting states
+and unexpired reservations. Reservations expire after 30 minutes.
+
+Authenticated API routes:
+
+- `GET /v1/storage/quota` — quota, used, reserved, and available GiB.
+- `GET /v1/storage/reservations` — the caller's most recent 100 reservations.
+- `POST /v1/storage/reservations` — reserve quota using JSON
+  `{"requested_gib": 20}` and a required `Idempotency-Key` header.
+- `DELETE /v1/storage/reservations/{id}` — release the caller's reservation.
+
+Reservation creation locks the caller's quota row in a PostgreSQL transaction,
+so concurrent requests for the same account cannot both spend the same quota.
+The idempotency key is unique per account; replaying the same active key and
+size returns the original reservation, while changing its size or reusing an
+inactive key returns a conflict. Reservation creation and release are audited.
+
+These are control-plane accounting reservations, not physical disk reservations.
+They do not allocate blocks, create QCOW2 files, or prove that a node has enough
+free space. The node capacity preflight remains an independent observation;
+a future trusted storage provider must re-check capacity during allocation and
+atomically consume a reservation into a volume record. Project membership and
+admin-adjustable quota management are not yet implemented; quotas are currently
+per user with a 100 GiB default.
