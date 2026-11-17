@@ -14,6 +14,16 @@ pub enum ApiError {
     DatabaseNotConfigured,
     #[error("A database operation failed")]
     Database(#[from] sqlx::Error),
+    #[error("Authentication is required")]
+    Unauthorized,
+    #[error("The account lacks the required permission")]
+    Forbidden,
+    #[error("Administrator bootstrap is not configured")]
+    BootstrapDisabled,
+    #[error("Initial administrator setup has already been completed")]
+    BootstrapAlreadyCompleted,
+    #[error("An internal service error occurred")]
+    Internal,
 }
 
 #[derive(Serialize)]
