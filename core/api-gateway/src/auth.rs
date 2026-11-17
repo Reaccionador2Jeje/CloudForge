@@ -183,10 +183,15 @@ pub async fn bootstrap(
         .execute(&mut *transaction)
         .await?;
 
-    let user_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
-        .fetch_one(&mut *transaction)
-        .await?;
-    if user_count != 0 {
+    let administrator_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*)
+         FROM user_roles ur
+         JOIN roles r ON r.id = ur.role_id
+         WHERE r.name = 'platform_admin'",
+    )
+    .fetch_one(&mut *transaction)
+    .await?;
+    if administrator_count != 0 {
         transaction.rollback().await?;
         record_auth_event(pool, None, "auth.bootstrap.denied", "denied").await;
         return Err(ApiError::BootstrapAlreadyCompleted);
