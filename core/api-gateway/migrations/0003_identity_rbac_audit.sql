@@ -108,3 +108,57 @@ VALUES
     ('operator', 'Operate approved infrastructure resources.', TRUE),
     ('viewer', 'Read-only access to permitted platform resources.', TRUE)
 ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO permissions (resource, action, description)
+VALUES
+    ('system', 'read', 'Read platform health and capability information.'),
+    ('instances', 'read', 'Read instance metadata.'),
+    ('instances', 'create', 'Create instance metadata records.'),
+    ('instances', 'update', 'Update instance metadata.'),
+    ('instances', 'delete', 'Delete instance metadata.'),
+    ('nodes', 'read', 'Read registered node metadata.'),
+    ('nodes', 'manage', 'Manage trusted node lifecycle.'),
+    ('users', 'read', 'Read user accounts.'),
+    ('users', 'manage', 'Manage user accounts and account status.'),
+    ('roles', 'read', 'Read role and permission assignments.'),
+    ('roles', 'manage', 'Assign roles and permissions.'),
+    ('audit', 'read', 'Read audit event history.'),
+    ('projects', 'read', 'Read project metadata.'),
+    ('projects', 'manage', 'Manage project membership and settings.'),
+    ('secrets', 'read', 'Read authorized secret references.'),
+    ('secrets', 'manage', 'Create, rotate, and revoke secrets.')
+ON CONFLICT (resource, action) DO NOTHING;
+
+-- The platform administrator role receives the complete permission set.
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r CROSS JOIN permissions p
+WHERE r.name = 'platform_admin'
+ON CONFLICT DO NOTHING;
+
+-- Operators can administer ordinary workload metadata, but not identity,
+-- permissions, secrets, or audit history.
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r CROSS JOIN permissions p
+WHERE r.name = 'operator'
+  AND (p.resource, p.action) IN (
+      ('system', 'read'),
+      ('instances', 'read'),
+      ('instances', 'create'),
+      ('instances', 'update'),
+      ('instances', 'delete'),
+      ('nodes', 'read'),
+      ('projects', 'read')
+  )
+ON CONFLICT DO NOTHING;
+
+-- Viewers receive read-only visibility and cannot inspect secrets or audit
+-- history until a separate policy explicitly grants those permissions.
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r CROSS JOIN permissions p
+WHERE r.name = 'viewer'
+  AND p.action = 'read'
+  AND p.resource IN ('system', 'instances', 'nodes', 'projects')
+ON CONFLICT DO NOTHING;
