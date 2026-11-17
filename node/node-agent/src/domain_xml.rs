@@ -36,7 +36,10 @@ impl DomainSpec {
             return Err(DomainSpecError::InvalidMemory);
         }
         let prefix = "/var/lib/cloudforge/pools/default/";
-        let relative = self.disk_path.strip_prefix(prefix).ok_or(DomainSpecError::InvalidDiskPath)?;
+        let relative = self
+            .disk_path
+            .strip_prefix(prefix)
+            .ok_or(DomainSpecError::InvalidDiskPath)?;
         if relative.is_empty()
             || relative.contains('/')
             || relative == "."
@@ -44,7 +47,11 @@ impl DomainSpec {
             || !relative.ends_with(".qcow2")
             || !relative
                 .bytes()
-                .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_' | b'.'))
+                .all(|byte| {
+                    byte.is_ascii_lowercase()
+                        || byte.is_ascii_digit()
+                        || matches!(byte, b'-' | b'_' | b'.')
+                })
         {
             return Err(DomainSpecError::InvalidDiskPath);
         }
