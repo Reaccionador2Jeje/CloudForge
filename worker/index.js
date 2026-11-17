@@ -3,6 +3,7 @@ const ROUTES = new Map([
   ["/health/ready", ["GET"]],
   ["/v1/system/info", ["GET"]],
   ["/v1/system/components", ["GET"]],
+  ["/v1/auth/register", ["POST"]],
   ["/v1/auth/bootstrap", ["POST"]],
   ["/v1/auth/login", ["POST"]],
   ["/v1/auth/me", ["GET"]],
@@ -73,6 +74,20 @@ function configuredOrigin(value) {
   }
 }
 
+function connectivityStatus(env) {
+  const originConfigured = configuredOrigin(env.CLOUDFORGE_API_ORIGIN) !== null;
+  const accessConfigured = Boolean(env.CF_ACCESS_CLIENT_ID && env.CF_ACCESS_CLIENT_SECRET);
+  return Response.json({
+    status: "ok",
+    worker_reachable: true,
+    api_origin_configured: originConfigured,
+    cloudflare_access_configured: accessConfigured,
+    backend_proxy_ready: originConfigured && accessConfigured,
+  }, {
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 async function proxyApi(request, env) {
   const incoming = new URL(request.url);
   const methods = ROUTES.get(incoming.pathname)
@@ -135,6 +150,9 @@ async function proxyApi(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/health/connectivity") {
+      return connectivityStatus(env);
+    }
     if (url.pathname.startsWith("/health/") || url.pathname.startsWith("/v1/")) {
       return proxyApi(request, env);
     }
