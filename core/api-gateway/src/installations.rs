@@ -102,7 +102,7 @@ pub async fn get_installation(
     .bind(id)
     .fetch_optional(pool)
     .await?
-    .ok_or(ApiError::Validation("installation job was not found".to_owned()))?;
+    .ok_or(ApiError::NotFound("installation job was not found".to_owned()))?;
 
     Ok(Json(job))
 }
@@ -114,7 +114,9 @@ pub async fn create_installation(
 ) -> Result<(StatusCode, Json<InstallationJob>), ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let version = profile_version(request.profile_id.trim()).ok_or_else(|| {
-        ApiError::Validation("profile_id must be windows-server-2025 or windows-server-2022".to_owned())
+        ApiError::Validation(
+            "profile_id must be windows-server-2025 or windows-server-2022".to_owned(),
+        )
     })?;
     let slug = request.installer_image_slug.trim();
     if slug.is_empty() || slug.len() > 96 {
@@ -129,7 +131,9 @@ pub async fn create_installation(
             .fetch_one(pool)
             .await?;
     if !instance_exists {
-        return Err(ApiError::Validation("instance_id does not identify an existing instance".to_owned()));
+        return Err(ApiError::Validation(
+            "instance_id does not identify an existing instance".to_owned(),
+        ));
     }
 
     let image = sqlx::query_as::<_, InstallerImage>(
@@ -140,7 +144,9 @@ pub async fn create_installation(
     .bind(slug)
     .fetch_optional(pool)
     .await?
-    .ok_or_else(|| ApiError::Validation("installer image was not found in the image catalog".to_owned()))?;
+    .ok_or_else(|| {
+        ApiError::Validation("installer image was not found in the image catalog".to_owned())
+    })?;
 
     if image.os_family != "windows-server"
         || image.os_version != version
