@@ -112,7 +112,7 @@ Initial instance registry endpoints (PostgreSQL required):
 - `GET /v1/instances` — list registered instance records.
 - `POST /v1/instances` — create a pending VM specification using JSON: `{"name":"my-server","vcpu":2,"memory_mib":2048,"image_ref":"ubuntu/24.04"}`. The compute fields are validated and persisted; they do not provision a VM.
 
-The instance registry stores a validated desired VM specification (name, vCPU, memory, and optional image reference). It does **not** create or start virtual machines. The image reference is only an identifier at this stage; an image catalog and actual provisioning are not implemented.
+The instance registry stores a validated desired VM specification (name, vCPU, memory, and optional image reference). It does **not** create or start virtual machines. The image reference is not yet resolved during VM creation. The authenticated image catalog is available separately at `GET /v1/images` and `POST /v1/images`; entries are metadata records in `draft` state, not downloadable or bootable artifacts.
 
 Run quality checks:
 
@@ -322,3 +322,16 @@ with a Service Auth policy, and Worker configuration values/secrets. See
 The API now exposes `GET /v1/compute/providers`, a read-only catalog describing the QEMU/KVM target, intended capabilities, and required infrastructure. A compute architecture document defines the provider-neutral control plane, initial VM resource model, and delivery gates.
 
 This is the first compute control-plane foundation, not a hypervisor integration. The QEMU/KVM provider remains `planned`; no host commands are executed and no virtual machines can be created yet. See [Compute architecture](docs/architecture/compute.md).
+
+
+## Milestone 1.4 — Operating-System Image Catalog
+
+The API now provides an RBAC-protected PostgreSQL catalog for operating-system image metadata:
+
+- `GET /v1/images` lists registered image records.
+- `POST /v1/images` registers a draft image record (platform administrator only).
+- Metadata includes a stable slug, display name, OS family/version, architecture, disk format, optional HTTPS source, and optional SHA-256 checksum.
+- Supported architectures are `x86_64` and `aarch64`; disk formats are `qcow2` and `raw`.
+- New records are always created as `draft`. A verified state requires a checksum at the database level.
+
+The catalog does not download, inspect, sign, verify, distribute, or boot images. The source URL and checksum are metadata supplied by an administrator and must not be treated as independently verified. VM provisioning still does not resolve `image_ref` against this catalog.
