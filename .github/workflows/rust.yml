@@ -41,9 +41,12 @@ jobs:
           assert 'href="/styles.css"' in html, "console stylesheet link is missing"
           scripts = re.findall(r"<script>(.*?)</script>", html, flags=re.DOTALL)
           assert scripts, "no inline console script found"
+          assert "DEMO_MODE" not in html, "public demo mode must not be shipped"
+          assert Path("worker/index.js").is_file(), "Cloudflare Worker entry point is missing"
           Path("/tmp/cloudforge-console.js").write_text("\\n".join(scripts), encoding="utf-8")
           PY
           node --check /tmp/cloudforge-console.js
+          node --check worker/index.js
 
       - name: Check formatting
         run: cargo fmt --all -- --check
