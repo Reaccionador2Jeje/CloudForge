@@ -1,5 +1,6 @@
 mod auth;
 mod components;
+mod compute;
 mod config;
 mod error;
 mod instances;
@@ -155,6 +156,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )),
             )
             .route("/v1/system/components", get(components::list_components))
+            .route("/v1/compute/providers", get(compute::list_providers))
             .route(
                 "/v1/instances",
                 get(list_instances).post(create_instance).route_layer(
