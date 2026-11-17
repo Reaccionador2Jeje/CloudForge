@@ -377,6 +377,17 @@ enabled. See [Compute architecture](docs/architecture/compute.md).
 
 
 
+### Storage pool preflight
+
+Inspect the default pool and `qemu-img` availability without changing the host:
+
+```bash
+cloudforge-node-agent --storage-preflight
+```
+
+This is read-only and reports blockers; it does not create the pool or disk images.
+See [Compute architecture](docs/architecture/compute.md).
+
 ### Combined VM provisioning plan
 
 The Node Agent can compose the validated QCOW2 disk plan and matching Q35/KVM
