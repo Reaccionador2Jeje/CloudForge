@@ -375,6 +375,21 @@ change host configuration. Node enrollment/mTLS, tenant isolation, scheduler,
 storage, and networking must be completed before remote VM management is
 enabled. See [Compute architecture](docs/architecture/compute.md).
 
+
+
+### Combined VM provisioning plan
+
+The Node Agent can compose the validated QCOW2 disk plan and matching Q35/KVM
+domain XML into one non-executable JSON plan:
+
+```bash
+cloudforge-node-agent --plan-vm <name> <vcpu> <memory-mib> <disk-name> <disk-size-gib>
+```
+
+The result includes explicit blockers and `execution_enabled: false`. It
+does not create disks or VMs, run QEMU, or modify the host. See
+[Compute architecture](docs/architecture/compute.md).
+
 The Node Agent also provides a validation-only libvirt XML renderer via
 `cloudforge-node-agent --render-domain-xml <name> <vcpu> <memory-mib> <disk-path>`.
 It emits a typed Q35/KVM definition for a QCOW2 file within the CloudForge
