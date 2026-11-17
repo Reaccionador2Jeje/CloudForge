@@ -168,3 +168,18 @@ Configure the following environment variables before running it:
 The preflight rejects non-HTTPS endpoints, checks required files and PEM markers, and on Unix requires owner-only private-key permissions. Its output contains only a safe configuration summary.
 
 **This is not remote authentication or enrollment yet.** It does not establish TLS, validate certificate chains, contact the API Gateway, or register a node. Actual mTLS transport, server-side certificate binding, authorization, revocation, and heartbeat persistence remain future work. See [Node identity and secure enrollment](docs/architecture/node-identity.md).
+
+
+## Milestone 0.5 — Web Console
+
+CloudForge now includes a responsive development console served directly by the API Gateway:
+
+- Open `http://127.0.0.1:8080/` or `/console` after starting the gateway.
+- Overview: API liveness/readiness, version, database state, and instance count.
+- Instances: create and list pending metadata records.
+- Nodes: Node Agent setup information and enrollment status.
+- Diagnostics: test the current API endpoints from the browser.
+
+The console is a static HTML/CSS/JavaScript application embedded into the gateway binary. It uses same-origin API requests and does not require a separate frontend build toolchain.
+
+**Security:** the current API and instance metadata routes do not yet have user authentication or authorization. Keep `CLOUDFORGE_HOST=127.0.0.1` and do not expose this development console to the public Internet. It does not provision VMs or enroll node agents. See [Web Console documentation](docs/web-console.md).
