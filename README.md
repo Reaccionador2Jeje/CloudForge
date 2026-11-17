@@ -59,7 +59,7 @@ docs/
 - [ ] Cryptographic mTLS enrollment and authenticated heartbeats
 - [ ] QEMU/KVM lifecycle management
 
-CloudForge remains a development project. The web console is a local testing interface and does not provision virtual machines or enroll infrastructure nodes.
+CloudForge remains a development project. The web console can be deployed publicly as a static Cloudflare Worker in explicit demo mode; it does not connect to the Rust API Gateway, provision virtual machines, or enroll infrastructure nodes.
 
 ## Development
 
@@ -175,6 +175,6 @@ CloudForge now includes a responsive development console served directly by the 
 - Nodes: Node Agent setup information and enrollment status.
 - Diagnostics: test the current API endpoints from the browser.
 
-The console is a static HTML/CSS/JavaScript application embedded into the gateway binary. It uses same-origin API requests and does not require a separate frontend build toolchain.
+The console is a static HTML/CSS/JavaScript application embedded into the gateway binary for local development. It can also be published independently as static assets on Cloudflare Workers. The public deployment uses a clearly marked demo mode: simulated sample rows only, no API requests, and no instance-creation actions.
 
-**Security:** the current API and instance metadata routes do not yet have user authentication or authorization. Keep `CLOUDFORGE_HOST=127.0.0.1` and do not expose this development console to the public Internet. It does not provision VMs or enroll node agents. See [Web Console documentation](docs/web-console.md).
+**Security:** the current API and instance metadata routes do not yet have user authentication or authorization. Keep the Rust API bound to `127.0.0.1` for local development and do not expose it to the public Internet. See [Web Console documentation](docs/web-console.md) and [Cloudflare Workers deployment](docs/deployment/cloudflare-workers.md).
