@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cloudforge",
+  "compatibility_date": "2026-11-17",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./web/console",
+    "not_found_handling": "404-page"
+  },
+  "observability": { "enabled": true }
+}
