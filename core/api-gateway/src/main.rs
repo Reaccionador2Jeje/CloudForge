@@ -183,9 +183,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             )
             .route(
                 "/v1/compute/installations/{id}",
-                get(installations::get_installation).route_layer(
-                    middleware::from_fn_with_state(installation_gate, auth::require_permission),
-                ),
+                get(installations::get_installation).route_layer(middleware::from_fn_with_state(
+                    installation_gate,
+                    auth::require_permission,
+                )),
             )
             .route(
                 "/v1/images",
