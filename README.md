@@ -244,3 +244,50 @@ docs/architecture/component-map.md.
 QEMU/KVM, containerd, and storage providers remain intentionally deferred until
 identity, authorization, node trust, provider-neutral APIs, and scheduling
 foundations have been built and tested.
+
+
+## Milestone 1.0 — Local Identity, Sessions, RBAC, and Audit
+
+The API Gateway now provides:
+
+- One-time first-administrator bootstrap, guarded by the
+  `CLOUDFORGE_BOOTSTRAP_TOKEN` environment variable (minimum 32 characters).
+- Argon2id password hashing and password verification.
+- Login and logout endpoints with random 256-bit bearer tokens.
+- Only SHA-256 token hashes are stored in PostgreSQL; sessions expire after
+  12 hours and can be revoked.
+- RBAC middleware protects instance listing/creation and node listing.
+- Authentication successes, failures, bootstrap attempts, and permission
+  denials are written to the append-only audit table.
+
+### Local first-time setup
+
+Generate a unique bootstrap token and keep it private:
+
+```bash
+openssl rand -hex 32
+```
+
+Set the generated value as `CLOUDFORGE_BOOTSTRAP_TOKEN` in the local
+environment or an untracked `.env` file, start PostgreSQL, and start the API
+Gateway. Then make the one-time request:
+
+```bash
+curl -X POST http://127.0.0.1:8080/v1/auth/bootstrap \
+  -H "Content-Type: application/json" \
+  -d '{"bootstrap_token":"YOUR_BOOTSTRAP_TOKEN","email":"admin@example.com","password":"YOUR_LONG_PASSWORD","display_name":"CloudForge Admin"}'
+```
+
+The response contains a bearer token. Send it as
+`Authorization: Bearer YOUR_ACCESS_TOKEN` when calling protected endpoints.
+Use `POST /v1/auth/login`, `GET /v1/auth/me`, and `POST /v1/auth/logout`
+for session management. Bootstrap can succeed only once, while the users table
+is empty.
+
+**Deployment boundary:** this is an initial local-development security
+milestone, not a public-production authentication system. Login rate limiting,
+TLS termination, CSRF protections for browser-based credentials, account
+recovery, key rotation, and a full security review are still required before
+exposing the API to untrusted networks. Keep `CLOUDFORGE_HOST=127.0.0.1`.
+Never commit the bootstrap token, passwords, bearer tokens, or a populated
+`.env` file.
