@@ -33,9 +33,7 @@ impl DiskRequest {
         if self.name.is_empty()
             || self.name.len() > 48
             || !self.name.bytes().all(|byte| {
-                byte.is_ascii_lowercase()
-                    || byte.is_ascii_digit()
-                    || matches!(byte, b'-' | b'_')
+                byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_')
             })
             || !self.name.as_bytes()[0].is_ascii_lowercase()
         {
