@@ -87,7 +87,7 @@
       <div class="notice">Las reservas descuentan cuota disponible durante 30 minutos. Son registros de capacidad: todavía no crean discos ni archivos QCOW2 en los nodos.</div>
       <div class="grid storage-metrics">
         <article class="card"><div class="metric-label">Cuota total</div><div class="metric" id="storage-quota">—</div><div class="metric-sub">GiB asignados a tu cuenta</div></article>
-        <article class="card"><div class="metric-label">En uso</div><div class="metric" id="storage-used">—</div><div class="metric-sub">Volúmenes en provisioning, ready o deleting</div></article>
+        <article class="card"><div class="metric-label">En uso</div><div class="metric" id="storage-used">—</div><div class="metric-sub">Volúmenes planificados o asignados</div></article>
         <article class="card"><div class="metric-label">Reservado</div><div class="metric" id="storage-reserved">—</div><div class="metric-sub">Reservas activas sin expirar</div></article>
         <article class="card"><div class="metric-label">Disponible</div><div class="metric" id="storage-available">—</div><div class="metric-sub">Cuota restante estimada</div></article>
       </div>
@@ -154,7 +154,7 @@ function acceptSession(session){
  $('instance-name').disabled=false;$('instance-form').querySelector('button').disabled=false;
  $('logout-button').hidden=false;
  toast('Sesión iniciada: '+session.user.display_name);
- loadOverview();loadInstances();loadNodes();
+ loadOverview();loadInstances();loadNodes();loadStorage();
 }
 $('login-form').addEventListener('submit',async event=>{
  event.preventDefault();const button=event.submitter;button.disabled=true;
@@ -170,7 +170,7 @@ $('bootstrap-form').addEventListener('submit',async event=>{
 });
 $('logout-button').addEventListener('click',async()=>{
  try{await api('/v1/auth/logout',{method:'POST'})}catch(error){toast('La sesión ya no está activa: '+error.message)}
- accessToken=null;$('logout-button').hidden=true;$('auth-panel').hidden=false;$('instance-name').disabled=true;$('instance-form').querySelector('button').disabled=true;toast('Sesión cerrada');loadOverview();
+ accessToken=null;$('logout-button').hidden=true;$('auth-panel').hidden=false;$('instance-name').disabled=true;$('instance-form').querySelector('button').disabled=true;toast('Sesión cerrada');loadOverview();loadStorage();
 });
 async function loadOverview(){
   try{const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);setApi(true,'API Gateway online');$('connection-banner').hidden=true;$('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';$('service-rows').innerHTML='';[['API Gateway',live.status],['Base de datos',ready.database],['Versión',info.version],['Entorno',info.stage]].forEach(([name,value])=>{const row=document.createElement('div');row.className='row';const x=document.createElement('span');x.textContent=name;const y=document.createElement('span');y.className='pill '+(value==='ok'||value==='connected'?'ok':'warn');y.textContent=value;row.append(x,y);$('service-rows').append(row)});try{const instances=await api('/v1/instances');$('metric-instances').textContent=instances.length}catch{$('metric-instances').textContent='N/D'}}catch(error){setApi(false,'API Gateway sin conexión');$('connection-banner').hidden=false;$('connection-banner').textContent='API Gateway no disponible: '+error.message;$('metric-db').textContent='—';$('service-rows').innerHTML='<div class="empty">No se pudo conectar: '+escapeHtml(error.message)+'</div>'}}
@@ -343,7 +343,7 @@ $('refresh-compute').addEventListener('click',loadCompute);$('refresh-images').a
 
 async function diagnostics(){
   const target=$('diagnostic-rows');target.innerHTML='';
-  for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes','/v1/storage/quota','/v1/storage/reservations']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
+  for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes','/v1/storage/quota','/v1/storage/reservations','/v1/storage/volumes']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
 
 $('refresh-overview').addEventListener('click',loadOverview);$('refresh-instances').addEventListener('click',loadInstances);$('refresh-nodes').addEventListener('click',loadNodes);$('run-diagnostics').addEventListener('click',diagnostics);loadOverview();
 </script>
