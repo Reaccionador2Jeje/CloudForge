@@ -2,6 +2,7 @@ mod components;
 mod config;
 mod error;
 mod instances;
+mod nodes;
 
 use std::net::SocketAddr;
 
@@ -116,6 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/v1/system/info", get(system_info))
         .route("/v1/system/components", get(components::list_components))
         .route("/v1/instances", get(list_instances).post(create_instance))
+        .route("/v1/nodes", get(nodes::list_nodes))
         .with_state(state);
 
     let listener = TcpListener::bind(address).await?;
