@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
