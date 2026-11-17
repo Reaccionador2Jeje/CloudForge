@@ -1,5 +1,6 @@
 mod compute;
 pub mod domain_xml;
+pub mod provisioning;
 mod identity;
 mod inventory;
 pub mod storage;
@@ -11,6 +12,28 @@ use inventory::HostInventory;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments: Vec<String> = env::args().collect();
+    if arguments
+        .get(1)
+        .is_some_and(|argument| argument == "--plan-vm")
+    {
+        if arguments.len() != 7 {
+            eprintln!(
+                "usage: cloudforge-node-agent --plan-vm <name> <vcpu> <memory-mib> <disk-name> <disk-size-gib>"
+            );
+            std::process::exit(64);
+        }
+        let request = provisioning::VmProvisioningRequest {
+            name: arguments[2].clone(),
+            vcpu: arguments[3].parse()?,
+            memory_mib: arguments[4].parse()?,
+            disk_name: arguments[5].clone(),
+            disk_size_gib: arguments[6].parse()?,
+        };
+        let plan = request.build_plan()?;
+        println!("{}", serde_json::to_string_pretty(&plan)?);
+        return Ok(());
+    }
+
     if arguments
         .get(1)
         .is_some_and(|argument| argument == "--render-domain-xml")
