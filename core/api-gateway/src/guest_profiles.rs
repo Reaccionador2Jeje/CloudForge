@@ -98,8 +98,12 @@ mod tests {
     fn windows_profiles_include_driver_and_verification_stages() {
         let profiles = windows_profiles();
         for profile in profiles {
-            assert!(profile.installation_stages.contains(&"load_storage_and_network_drivers"));
-            assert!(profile.installation_stages.contains(&"verify_guest_health_and_license"));
+            assert!(profile
+                .installation_stages
+                .contains(&"load_storage_and_network_drivers"));
+            assert!(profile
+                .installation_stages
+                .contains(&"verify_guest_health_and_license"));
         }
     }
 }
