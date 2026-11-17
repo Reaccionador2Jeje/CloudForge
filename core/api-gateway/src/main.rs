@@ -3,8 +3,8 @@ mod components;
 mod compute;
 mod config;
 mod error;
-mod instances;
 mod images;
+mod instances;
 mod nodes;
 
 use std::net::SocketAddr;
@@ -164,9 +164,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/v1/compute/providers", get(compute::list_providers))
             .route(
                 "/v1/images",
-                get(images::list_images).post(images::create_image).route_layer(
-                    middleware::from_fn_with_state(image_gate, auth::require_permission),
-                ),
+                get(images::list_images)
+                    .post(images::create_image)
+                    .route_layer(middleware::from_fn_with_state(
+                        image_gate,
+                        auth::require_permission,
+                    )),
             )
             .route(
                 "/v1/instances",
