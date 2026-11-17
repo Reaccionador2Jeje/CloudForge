@@ -234,6 +234,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route(
                 "/v1/storage/reservations/{id}",
                 delete(storage::release_reservation).route_layer(middleware::from_fn_with_state(
+                    storage_gate.clone(),
+                    auth::require_permission,
+                )),
+            )
+            .route(
+                "/v1/storage/volumes",
+                get(storage::list_volumes)
+                    .post(storage::create_volume)
+                    .route_layer(middleware::from_fn_with_state(
+                        storage_gate.clone(),
+                        auth::require_permission,
+                    )),
+            )
+            .route(
+                "/v1/storage/volumes/{id}",
+                delete(storage::delete_volume).route_layer(middleware::from_fn_with_state(
                     storage_gate,
                     auth::require_permission,
                 )),
