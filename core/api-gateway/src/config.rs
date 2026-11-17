@@ -23,7 +23,9 @@ impl AppConfig {
             return Err("CLOUDFORGE_DATABASE_MAX_CONNECTIONS must be greater than zero".to_owned());
         }
 
-        let database_url = env::var("DATABASE_URL").ok().filter(|value| !value.trim().is_empty());
+        let database_url = env::var("DATABASE_URL")
+            .ok()
+            .filter(|value| !value.trim().is_empty());
 
         Ok(Self {
             host,
