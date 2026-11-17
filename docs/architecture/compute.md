@@ -271,3 +271,23 @@ inspect or modify disk contents, or create QCOW2 images. Permission mode bits
 are only a preliminary signal: effective access, service identity, free space,
 filesystem quotas, mount properties, and safe ownership policy still require
 dedicated validation before a storage provider can be enabled.
+
+
+## Read-only storage capacity assessment
+
+The Node Agent can estimate whether a requested virtual disk plus a fixed
+10 GiB safety reserve fits on the filesystem containing the default pool:
+
+```bash
+cloudforge-node-agent --storage-capacity 40
+```
+
+The report selects the most specific mounted filesystem containing
+`/var/lib/cloudforge/pools/default` and returns its mount point, total bytes,
+available bytes, requested virtual size, reserve, and required free capacity.
+Requests are limited to 1–2048 GiB. The check is deliberately conservative:
+it requires physical free space for the full virtual size even though the
+planned QCOW2 allocation is sparse. It is an observation, not a reservation;
+free space can change immediately after the report, so a future provider must
+re-check capacity atomically near allocation time and enforce quotas/reservations.
+The command does not create files, reserve blocks, or modify the filesystem.
