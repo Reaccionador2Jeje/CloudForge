@@ -46,25 +46,20 @@ docs/
 
 ## Current status
 
-**Milestone 0.2 — Persistent Cloud Core**
+**Milestone 0.5 — Web Console Preview**
 
-- [x] Rust workspace
-- [x] Axum API Gateway skeleton
-- [x] Liveness and readiness endpoints
-- [x] Environment-based listen configuration
-- [x] Structured logging
-- [x] Graceful shutdown
-- [x] Initial architecture documentation
-- [x] Rust CI workflow
-- [x] Optional PostgreSQL integration and migrations
-- [x] Initial persistent instance registry API
-- [x] Structured API error responses
-- [x] Local PostgreSQL Compose environment
-- [ ] Identity and authorization
-- [ ] Node Agent
+- [x] Rust workspace and Axum API Gateway
+- [x] Health and system information endpoints
+- [x] Optional PostgreSQL integration and instance metadata registry
+- [x] Read-only Node Agent host inventory
+- [x] Node identity configuration preflight (not remote authentication)
+- [x] Responsive browser console served by the API Gateway
+- [x] Overview, instance metadata, node readiness information, and API diagnostics
+- [ ] User authentication and role-based authorization
+- [ ] Cryptographic mTLS enrollment and authenticated heartbeats
 - [ ] QEMU/KVM lifecycle management
 
-The current API Gateway is a development foundation. It does not yet provision virtual machines or manage production infrastructure.
+CloudForge remains a development project. The web console is a local testing interface and does not provision virtual machines or enroll infrastructure nodes.
 
 ## Development
 
