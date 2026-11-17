@@ -1,9 +1,11 @@
 use serde::Serialize;
 use std::process::{Command, Output};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct LibvirtDomain {
+    pub uuid: String,
     pub name: String,
+    pub state: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -14,6 +16,7 @@ pub struct ComputePreflight {
     pub qemu_binary_available: bool,
     pub libvirt_cli_available: bool,
     pub libvirt_system_connection: bool,
+    pub domain_inventory_available: bool,
     pub provider_ready: bool,
     pub domains: Vec<LibvirtDomain>,
     pub blockers: Vec<&'static str>,
@@ -43,15 +46,72 @@ fn command_output(program: &str, args: &[&str]) -> Option<Output> {
     Command::new(program).args(args).output().ok()
 }
 
-fn parse_domains(output: &str) -> Vec<LibvirtDomain> {
+fn parse_uuid_list(output: &str) -> Vec<&str> {
     output
         .lines()
         .map(str::trim)
-        .filter(|name| !name.is_empty())
-        .map(|name| LibvirtDomain {
-            name: name.to_owned(),
-        })
+        .filter(|value| !value.is_empty())
+        .filter(|value| uuid_is_valid(value))
         .collect()
+}
+
+fn uuid_is_valid(value: &str) -> bool {
+    value.len() == 36
+        && value
+            .chars()
+            .enumerate()
+            .all(|(index, character)| match index {
+                8 | 13 | 18 | 23 => character == '-',
+                _ => character.is_ascii_hexdigit(),
+            })
+}
+
+fn collect_domains() -> Option<Vec<LibvirtDomain>> {
+    let output = command_output(
+        "virsh",
+        &["-c", "qemu:///system", "list", "--all", "--uuid"],
+    )?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8(output.stdout).ok()?;
+    let uuids = parse_uuid_list(&text);
+    let mut domains = Vec::with_capacity(uuids.len());
+
+    for uuid in uuids {
+        // UUIDs are parsed and validated before being passed as a single argv item.
+        let name_output = command_output(
+            "virsh",
+            &["-c", "qemu:///system", "domname", uuid],
+        )?;
+        if !name_output.status.success() {
+            return None;
+        }
+        let name = String::from_utf8(name_output.stdout).ok()?.trim().to_owned();
+        if name.is_empty() {
+            return None;
+        }
+
+        let state_output = command_output(
+            "virsh",
+            &["-c", "qemu:///system", "domstate", uuid],
+        )?;
+        if !state_output.status.success() {
+            return None;
+        }
+        let state = String::from_utf8(state_output.stdout).ok()?.trim().to_owned();
+        if state.is_empty() {
+            return None;
+        }
+
+        domains.push(LibvirtDomain {
+            uuid: uuid.to_owned(),
+            name,
+            state,
+        });
+    }
+
+    Some(domains)
 }
 
 /// Performs a read-only preflight against the local system libvirt connection.
@@ -65,24 +125,12 @@ pub fn collect_preflight() -> ComputePreflight {
     let libvirt_system_connection =
         libvirt_cli_available && command_succeeds("virsh", &["-c", "qemu:///system", "version"]);
 
-    let domain_output = if libvirt_system_connection {
-        command_output(
-            "virsh",
-            &["-c", "qemu:///system", "list", "--all", "--name"],
-        )
+    let domains = if libvirt_system_connection {
+        collect_domains()
     } else {
         None
     };
-
-    let domain_inventory_available = domain_output.as_ref().is_some_and(|output| {
-        output.status.success() && String::from_utf8(output.stdout.clone()).is_ok()
-    });
-    let domains = domain_output
-        .as_ref()
-        .filter(|output| output.status.success())
-        .and_then(|output| String::from_utf8(output.stdout.clone()).ok())
-        .map(|output| parse_domains(&output))
-        .unwrap_or_default();
+    let domain_inventory_available = domains.is_some();
 
     let mut blockers = Vec::new();
     if !supported_host {
@@ -107,32 +155,42 @@ pub fn collect_preflight() -> ComputePreflight {
     let provider_ready = blockers.is_empty();
 
     ComputePreflight {
-        schema_version: 1,
+        schema_version: 2,
         supported_host,
         kvm_device_available,
         qemu_binary_available,
         libvirt_cli_available,
         libvirt_system_connection,
+        domain_inventory_available,
         provider_ready,
-        domains,
+        domains: domains.unwrap_or_default(),
         blockers,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse_domains;
+    use super::{parse_uuid_list, uuid_is_valid};
 
     #[test]
-    fn parses_libvirt_domain_names_without_empty_rows() {
-        let domains = parse_domains("ubuntu-dev\n\nwindows-lab\n");
-        assert_eq!(domains.len(), 2);
-        assert_eq!(domains[0].name, "ubuntu-dev");
-        assert_eq!(domains[1].name, "windows-lab");
+    fn accepts_only_well_formed_uuid_values() {
+        assert!(uuid_is_valid("550e8400-e29b-41d4-a716-446655440000"));
+        assert!(!uuid_is_valid("not-a-uuid"));
+        assert!(!uuid_is_valid("--help"));
     }
 
     #[test]
-    fn empty_libvirt_output_has_no_domains() {
-        assert!(parse_domains("\n  \n").is_empty());
+    fn parses_libvirt_uuid_inventory_and_ignores_empty_rows() {
+        let ids = parse_uuid_list(
+            "550e8400-e29b-41d4-a716-446655440000\n\n550e8400-e29b-41d4-a716-446655440001\n",
+        );
+        assert_eq!(ids.len(), 2);
+        assert_eq!(ids[0], "550e8400-e29b-41d4-a716-446655440000");
+        assert_eq!(ids[1], "550e8400-e29b-41d4-a716-446655440001");
+    }
+
+    #[test]
+    fn rejects_non_uuid_output_from_libvirt() {
+        assert!(parse_uuid_list("Domain-0\n--help\n").is_empty());
     }
 }
