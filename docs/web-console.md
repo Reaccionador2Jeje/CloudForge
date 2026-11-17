@@ -14,7 +14,7 @@ Because the console and API share the same origin, the browser can call the exis
 - **Overview:** liveness, readiness, API version, database state, and instance count.
 - **Instances:** list metadata records and create a pending metadata record.
 - **Nodes:** explains the current Node Agent preflight and clearly shows that remote enrollment is not yet available.
-- **Diagnostics:** probes the health, system information, and instance API routes.
+- **Components:** searches and filters the API component capability registry, including planned integrations.\n- **Diagnostics:** probes the health, system information, instance, node, and component API routes.
 
 ## Run locally
 
@@ -39,3 +39,22 @@ This is a development console, not an authenticated production admin panel. The 
 The console only creates and lists instance metadata; it does not provision virtual machines. The Nodes screen is informational. It does not enroll agents, accept certificates, or create node credentials.
 
 Before remote or multi-user deployment, CloudForge must implement user identity, session security, role-based authorization, CSRF protections for browser mutations where applicable, TLS termination, audit logging, and authenticated node enrollment.
+
+
+## Console design system and component catalog
+
+The console loads its stylesheet from `/styles.css`, served from the
+`web/console/styles.css` static asset. The layout includes responsive
+navigation, status indicators, metric cards, tables, component cards, search,
+and state filters.
+
+The Components screen calls `GET /v1/system/components` in local mode. In
+public Cloudflare demo mode, it uses explicitly simulated catalog entries and
+does not send API requests. The catalog is informational: a `planned` state
+does not mean that a backend, hypervisor, storage pool, or network service is
+installed or operational.
+
+The expanded catalog currently tracks API Gateway, PostgreSQL, Web Console,
+Node Agent, Node Registry, Node Identity, the proposed Node Agent protocol,
+mTLS enrollment, user identity/RBAC, audit, QEMU/KVM, container runtime,
+scheduler, image service, storage, networking, metrics, and mobile client.
