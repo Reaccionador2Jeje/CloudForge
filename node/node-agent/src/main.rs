@@ -4,8 +4,8 @@ mod identity;
 mod inventory;
 pub mod provisioning;
 pub mod storage;
-pub mod storage_capacity;
 pub mod storage_allocation;
+pub mod storage_capacity;
 pub mod storage_preflight;
 
 use std::env;
