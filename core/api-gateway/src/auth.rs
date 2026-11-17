@@ -1,13 +1,13 @@
+use argon2::{
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
 use axum::{
     extract::State,
     http::{header::AUTHORIZATION, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     Json,
-};
-use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
 };
 use chrono::{Duration, Utc};
 use rand::{rngs::OsRng, RngCore};
@@ -74,7 +74,9 @@ pub struct PermissionGate {
 fn normalize_email(email: &str) -> Result<String, ApiError> {
     let value = email.trim().to_ascii_lowercase();
     if value.len() < 3 || value.len() > 254 || !value.contains('@') {
-        return Err(ApiError::Validation("A valid email address is required".to_owned()));
+        return Err(ApiError::Validation(
+            "A valid email address is required".to_owned(),
+        ));
     }
     Ok(value)
 }
@@ -184,11 +186,9 @@ pub async fn bootstrap(
     .fetch_one(&mut *transaction)
     .await?;
 
-    let role_id: Uuid = sqlx::query_scalar(
-        "SELECT id FROM roles WHERE name = 'platform_admin'",
-    )
-    .fetch_one(&mut *transaction)
-    .await?;
+    let role_id: Uuid = sqlx::query_scalar("SELECT id FROM roles WHERE name = 'platform_admin'")
+        .fetch_one(&mut *transaction)
+        .await?;
     sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)")
         .bind(user.id)
         .bind(role_id)
@@ -279,10 +279,7 @@ pub async fn login(
     }))
 }
 
-async fn authenticate(
-    state: &AppState,
-    token: &str,
-) -> Result<AuthenticatedUser, ApiError> {
+async fn authenticate(state: &AppState, token: &str) -> Result<AuthenticatedUser, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     sqlx::query_as::<_, AuthenticatedUser>(
         "SELECT u.id, u.email, u.display_name
@@ -412,7 +409,10 @@ mod tests {
 
     #[test]
     fn email_is_normalized() {
-        assert_eq!(normalize_email("  ADMIN@EXAMPLE.COM ").unwrap(), "admin@example.com");
+        assert_eq!(
+            normalize_email("  ADMIN@EXAMPLE.COM ").unwrap(),
+            "admin@example.com"
+        );
     }
 
     #[test]
