@@ -4,6 +4,7 @@ mod identity;
 mod inventory;
 pub mod provisioning;
 pub mod storage;
+pub mod storage_capacity;
 pub mod storage_preflight;
 
 use std::env;
@@ -13,6 +14,23 @@ use inventory::HostInventory;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments: Vec<String> = env::args().collect();
+    if arguments
+        .get(1)
+        .is_some_and(|argument| argument == "--storage-capacity")
+    {
+        if arguments.len() != 3 {
+            eprintln!("usage: cloudforge-node-agent --storage-capacity <requested-size-gib>");
+            std::process::exit(64);
+        }
+        let requested_gib: u64 = arguments[2].parse()?;
+        let report = storage_capacity::collect_capacity(requested_gib);
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        if !report.capacity_sufficient {
+            std::process::exit(2);
+        }
+        return Ok(());
+    }
+
     if arguments
         .get(1)
         .is_some_and(|argument| argument == "--storage-preflight")
