@@ -103,6 +103,20 @@
         <div class="section"><h2>Historial de reservas</h2><span class="pill">Últimas 100</span></div>
         <div class="table-wrap"><table><thead><tr><th>ID</th><th>Capacidad</th><th>Estado</th><th>Creada</th><th>Vence</th><th>Acción</th></tr></thead><tbody id="storage-reservation-table"><tr><td colspan="6" class="empty">Inicia sesión para consultar tus reservas.</td></tr></tbody></table></div>
       </article>
+      <article class="card" style="margin-top:14px">
+        <h3>Crear volumen planificado</h3>
+        <p class="muted">Convierte una reserva activa en un registro de volumen. Esto consume la reserva y la cuota, pero todavía no crea un archivo ni asigna un nodo.</p>
+        <form class="form" id="storage-volume-form">
+          <select id="storage-volume-reservation" required aria-label="Reserva activa"><option value="">Selecciona una reserva activa</option></select>
+          <input id="storage-volume-name" type="text" minlength="1" maxlength="48" pattern="[a-z][a-z0-9_-]{0,47}" placeholder="nombre-del-volumen" required aria-label="Nombre del volumen">
+          <select id="storage-volume-format" aria-label="Formato del volumen"><option value="qcow2">QCOW2</option><option value="raw">RAW</option></select>
+          <button type="submit">Crear volumen planificado</button>
+        </form>
+      </article>
+      <article class="card" style="margin-top:14px">
+        <div class="section"><h2>Volúmenes</h2><span class="pill">Últimos 100</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>ID</th><th>Tamaño</th><th>Formato</th><th>Estado</th><th>Creado</th><th>Acción</th></tr></thead><tbody id="storage-volume-table"><tr><td colspan="7" class="empty">Inicia sesión para consultar volúmenes.</td></tr></tbody></table></div>
+      </article>
     </section>
 
     <section class="panel" id="page-compute"><div class="section"><h2>Compute providers</h2><button id="refresh-compute">Actualizar</button></div><div class="notice">Estado real del API. Los proveedores planificados no crean ni ejecutan VMs.</div><div class="grid" id="compute-grid"><article class="card empty">Consultando…</article></div><article class="card"><h2>Preflight del host</h2><p class="muted">Ejecuta localmente en el host Linux: <span class="code">cloudforge-node-agent --compute-preflight</span>. El resultado aún no se reporta al Control Plane.</p></article></section>
@@ -221,28 +235,67 @@ $('refresh-components')?.addEventListener('click',loadComponents);
 function storageStatusLabel(status){return ({reserved:'Reservada',released:'Liberada',expired:'Expirada',consumed:'Consumida'})[status]||status}
 function storageStatusClass(status){return status==='reserved'?'warn':status==='consumed'?'ok':'info'}
 async function loadStorage(){
- const table=$('storage-reservation-table');
- if(!accessToken){table.innerHTML='<tr><td colspan="6" class="empty">Inicia sesión para consultar tus reservas.</td></tr>';return}
- table.innerHTML='<tr><td colspan="6" class="empty">Consultando almacenamiento…</td></tr>';
+ const reservationsTable=$('storage-reservation-table');
+ const volumesTable=$('storage-volume-table');
+ const reservationSelect=$('storage-volume-reservation');
+ if(!accessToken){
+  reservationsTable.innerHTML='<tr><td colspan="6" class="empty">Inicia sesión para consultar tus reservas.</td></tr>';
+  volumesTable.innerHTML='<tr><td colspan="7" class="empty">Inicia sesión para consultar volúmenes.</td></tr>';
+  reservationSelect.innerHTML='<option value="">Inicia sesión primero</option>';
+  return;
+ }
+ reservationsTable.innerHTML='<tr><td colspan="6" class="empty">Consultando reservas…</td></tr>';
+ volumesTable.innerHTML='<tr><td colspan="7" class="empty">Consultando volúmenes…</td></tr>';
  try{
-  const [quota,reservations]=await Promise.all([api('/v1/storage/quota'),api('/v1/storage/reservations')]);
+  const [quota,reservations,volumes]=await Promise.all([
+   api('/v1/storage/quota'),api('/v1/storage/reservations'),api('/v1/storage/volumes')
+  ]);
   $('storage-quota').textContent=quota.quota_gib+' GiB';
   $('storage-used').textContent=quota.used_gib+' GiB';
   $('storage-reserved').textContent=quota.reserved_gib+' GiB';
   $('storage-available').textContent=quota.available_gib+' GiB';
-  table.innerHTML='';
-  if(!reservations.length){table.innerHTML='<tr><td colspan="6" class="empty">Todavía no hay reservas.</td></tr>';return}
+  reservationSelect.innerHTML='<option value="">Selecciona una reserva activa</option>';
+  reservationsTable.innerHTML='';
+  const activeReservations=reservations.filter(item=>item.status==='reserved'&&new Date(item.expires_at)>new Date());
+  activeReservations.forEach(item=>{
+   const option=document.createElement('option');option.value=item.id;
+   option.textContent=item.requested_gib+' GiB · vence '+new Date(item.expires_at).toLocaleString();
+   reservationSelect.append(option);
+  });
+  if(!reservations.length) reservationsTable.innerHTML='<tr><td colspan="6" class="empty">Todavía no hay reservas.</td></tr>';
   reservations.forEach(item=>{
    const row=document.createElement('tr');
    const values=[item.id,item.requested_gib+' GiB',storageStatusLabel(item.status),new Date(item.created_at).toLocaleString(),new Date(item.expires_at).toLocaleString()];
-   values.forEach((value,index)=>{const cell=document.createElement('td');cell.textContent=value;if(index===2){const badge=document.createElement('span');badge.className='pill '+storageStatusClass(item.status);badge.textContent=value;cell.textContent='';cell.append(badge)}row.append(cell)});
+   values.forEach((value,index)=>{
+    const cell=document.createElement('td');cell.textContent=value;
+    if(index===2){const badge=document.createElement('span');badge.className='pill '+storageStatusClass(item.status);badge.textContent=value;cell.textContent='';cell.append(badge)}
+    row.append(cell);
+   });
    const action=document.createElement('td');
    if(item.status==='reserved'&&new Date(item.expires_at)>new Date()){
     const button=document.createElement('button');button.type='button';button.textContent='Liberar';button.dataset.releaseReservation=item.id;action.append(button);
    }else action.textContent='—';
-   row.append(action);table.append(row);
+   row.append(action);reservationsTable.append(row);
   });
- }catch(error){table.innerHTML='<tr><td colspan="6" class="empty">'+escapeHtml(error.message)+'</td></tr>'}
+  volumesTable.innerHTML='';
+  if(!volumes.length) volumesTable.innerHTML='<tr><td colspan="7" class="empty">Todavía no hay volúmenes planificados.</td></tr>';
+  volumes.forEach(item=>{
+   const row=document.createElement('tr');
+   [item.name,item.id,item.size_gib+' GiB',item.format.toUpperCase(),item.status,new Date(item.created_at).toLocaleString()].forEach((value,index)=>{
+    const cell=document.createElement('td');cell.textContent=value;
+    if(index===4){const badge=document.createElement('span');badge.className='pill '+(item.status==='ready'?'ok':item.status==='planned'?'warn':'info');badge.textContent=value;cell.textContent='';cell.append(badge)}
+    row.append(cell);
+   });
+   const action=document.createElement('td');
+   if(item.status==='planned'||item.status==='failed'){
+    const button=document.createElement('button');button.type='button';button.textContent='Eliminar plan';button.dataset.deleteVolume=item.id;action.append(button);
+   }else action.textContent='—';
+   row.append(action);volumesTable.append(row);
+  });
+ }catch(error){
+  reservationsTable.innerHTML='<tr><td colspan="6" class="empty">'+escapeHtml(error.message)+'</td></tr>';
+  volumesTable.innerHTML='<tr><td colspan="7" class="empty">'+escapeHtml(error.message)+'</td></tr>';
+ }
 }
 $('storage-reservation-form').addEventListener('submit',async event=>{
  event.preventDefault();const button=event.submitter;button.disabled=true;
@@ -254,11 +307,30 @@ $('storage-reservation-form').addEventListener('submit',async event=>{
  }catch(error){toast('No se pudo reservar almacenamiento: '+error.message)}
  finally{button.disabled=false}
 });
+$('storage-volume-form').addEventListener('submit',async event=>{
+ event.preventDefault();const button=event.submitter;button.disabled=true;
+ try{
+  const volume=await api('/v1/storage/volumes',{method:'POST',body:JSON.stringify({
+   reservation_id:$('storage-volume-reservation').value,
+   name:$('storage-volume-name').value.trim(),
+   format:$('storage-volume-format').value
+  })});
+  toast('Volumen planificado: '+volume.name+' ('+volume.size_gib+' GiB). No se ha creado un disco físico.');
+  $('storage-volume-name').value='';await loadStorage();
+ }catch(error){toast('No se pudo crear el plan: '+error.message)}
+ finally{button.disabled=false}
+});
 $('storage-reservation-table').addEventListener('click',async event=>{
  const button=event.target.closest('button[data-release-reservation]');if(!button)return;
  button.disabled=true;
  try{await api('/v1/storage/reservations/'+encodeURIComponent(button.dataset.releaseReservation),{method:'DELETE'});toast('Reserva liberada');await loadStorage()}
  catch(error){toast('No se pudo liberar la reserva: '+error.message);button.disabled=false}
+});
+$('storage-volume-table').addEventListener('click',async event=>{
+ const button=event.target.closest('button[data-delete-volume]');if(!button)return;
+ button.disabled=true;
+ try{await api('/v1/storage/volumes/'+encodeURIComponent(button.dataset.deleteVolume),{method:'DELETE'});toast('Plan de volumen eliminado; no había disco físico que borrar.');await loadStorage()}
+ catch(error){toast('No se pudo eliminar el plan: '+error.message);button.disabled=false}
 });
 $('refresh-storage').addEventListener('click',loadStorage);
 
