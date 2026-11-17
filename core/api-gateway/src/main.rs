@@ -155,6 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/health/live", get(live))
             .route("/health/ready", get(ready))
             .route("/v1/system/info", get(system_info))
+            .route("/v1/auth/register", post(auth::register))
             .route("/v1/auth/bootstrap", post(auth::bootstrap))
             .route("/v1/auth/login", post(auth::login))
             .route(
