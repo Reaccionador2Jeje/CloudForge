@@ -38,6 +38,16 @@
         </form>
       </article>
       <article class="card">
+        <div class="section"><h2>Crear cuenta</h2><span class="pill ok">Registro</span></div>
+        <p class="muted">Crea una cuenta personal de CloudForge. Recibirás permisos limitados y podrás iniciar sesión después con tu correo y contraseña.</p>
+        <form class="form" id="register-form">
+          <input id="register-name" maxlength="80" placeholder="Nombre visible" autocomplete="name" required>
+          <input id="register-email" type="email" maxlength="254" placeholder="Correo electrónico" autocomplete="email" required>
+          <input id="register-password" type="password" minlength="12" maxlength="128" placeholder="Contraseña (mínimo 12 caracteres)" autocomplete="new-password" required>
+          <button type="submit">Crear cuenta</button>
+        </form>
+      </article>
+      <article class="card">
         <div class="section"><h2>Primer administrador</h2><span class="pill warn">Una sola vez</span></div>
         <p class="muted">Solo funciona si no existen usuarios y el servidor tiene configurado CLOUDFORGE_BOOTSTRAP_TOKEN.</p>
         <form class="form" id="bootstrap-form">
@@ -156,6 +166,20 @@ function acceptSession(session){
  toast('Sesión iniciada: '+session.user.display_name);
  loadOverview();loadInstances();loadNodes();loadStorage();
 }
+$('register-form').addEventListener('submit',async event=>{
+ event.preventDefault();const button=event.submitter;button.disabled=true;
+ try{
+  const session=await api('/v1/auth/register',{method:'POST',body:JSON.stringify({
+   display_name:$('register-name').value.trim(),
+   email:$('register-email').value.trim(),
+   password:$('register-password').value
+  })});
+  $('register-password').value='';
+  acceptSession(session);
+  toast('Cuenta creada correctamente. Ya puedes iniciar sesión cuando vuelvas.');
+ }catch(error){toast('No se pudo crear la cuenta: '+error.message)}
+ finally{button.disabled=false}
+});
 $('login-form').addEventListener('submit',async event=>{
  event.preventDefault();const button=event.submitter;button.disabled=true;
  try{const session=await api('/v1/auth/login',{method:'POST',body:JSON.stringify({email:$('login-email').value,password:$('login-password').value})});acceptSession(session)}
@@ -173,7 +197,49 @@ $('logout-button').addEventListener('click',async()=>{
  accessToken=null;$('logout-button').hidden=true;$('auth-panel').hidden=false;$('instance-name').disabled=true;$('instance-form').querySelector('button').disabled=true;toast('Sesión cerrada');loadOverview();loadStorage();
 });
 async function loadOverview(){
-  try{const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);setApi(true,'API Gateway online');$('connection-banner').hidden=true;$('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';$('service-rows').innerHTML='';[['API Gateway',live.status],['Base de datos',ready.database],['Versión',info.version],['Entorno',info.stage]].forEach(([name,value])=>{const row=document.createElement('div');row.className='row';const x=document.createElement('span');x.textContent=name;const y=document.createElement('span');y.className='pill '+(value==='ok'||value==='connected'?'ok':'warn');y.textContent=value;row.append(x,y);$('service-rows').append(row)});try{const instances=await api('/v1/instances');$('metric-instances').textContent=instances.length}catch{$('metric-instances').textContent='N/D'}}catch(error){setApi(false,'API Gateway sin conexión');$('connection-banner').hidden=false;$('connection-banner').textContent='API Gateway no disponible: '+error.message;$('metric-db').textContent='—';$('service-rows').innerHTML='<div class="empty">No se pudo conectar: '+escapeHtml(error.message)+'</div>'}}
+  if(!navigator.onLine){
+   setApi(false,'Sin conexión a Internet');
+   $('connection-banner').hidden=false;
+   $('connection-banner').textContent='Este dispositivo no tiene conexión a Internet. Comprueba Wi-Fi o datos móviles.';
+   $('metric-db').textContent='—';
+   $('service-rows').innerHTML='<div class="empty">Dispositivo sin conexión.</div>';
+   return;
+  }
+  try{
+   const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);
+   setApi(true,'API Gateway online');$('connection-banner').hidden=true;
+   $('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';
+   $('service-rows').innerHTML='';
+   [['API Gateway',live.status],['Base de datos',ready.database],['Versión',info.version],['Entorno',info.stage]].forEach(([name,value])=>{
+    const row=document.createElement('div');row.className='row';
+    const x=document.createElement('span');x.textContent=name;
+    const y=document.createElement('span');y.className='pill '+(value==='ok'||value==='connected'?'ok':'warn');y.textContent=value;
+    row.append(x,y);$('service-rows').append(row);
+   });
+   try{const instances=await api('/v1/instances');$('metric-instances').textContent=instances.length}catch{$('metric-instances').textContent='N/D'}
+  }catch(error){
+   setApi(false,'API Gateway no disponible');
+   $('metric-db').textContent='—';
+   let detail='No se pudo contactar con el backend: '+error.message;
+   try{
+    const response=await fetch('/health/connectivity',{cache:'no-store'});
+    const status=await response.json();
+    if(!navigator.onLine) detail='Sin conexión a Internet en este dispositivo.';
+    else if(!status.api_origin_configured) detail='Internet disponible. Falta configurar CLOUDFORGE_API_ORIGIN en el Worker de Cloudflare.';
+    else if(!status.cloudflare_access_configured) detail='Internet disponible. Falta configurar CF_ACCESS_CLIENT_ID y CF_ACCESS_CLIENT_SECRET como secretos del Worker.';
+    else if(status.backend_proxy_ready) detail='Internet y proxy configurados, pero el API Gateway de origen no responde. Revisa el host, puerto, firewall y Cloudflare Access.';
+   }catch{
+    if(!navigator.onLine)detail='Sin conexión a Internet en este dispositivo.';
+    else detail='El sitio responde, pero no se pudo consultar el estado del proxy CloudForge.';
+   }
+   $('connection-banner').hidden=false;
+   $('connection-banner').textContent='API Gateway no disponible: '+detail;
+   $('service-rows').innerHTML='<div class="empty">'+escapeHtml(detail)+'</div>';
+  }
+}
+window.addEventListener('online',()=>{toast('Conexión a Internet detectada');loadOverview()});
+window.addEventListener('offline',()=>{setApi(false,'Sin conexión a Internet');$('connection-banner').hidden=false;$('connection-banner').textContent='Este dispositivo perdió la conexión a Internet.'});
+
 
 function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function loadNodes(){
