@@ -5,6 +5,7 @@ mod inventory;
 pub mod provisioning;
 pub mod storage;
 pub mod storage_capacity;
+pub mod storage_allocation;
 pub mod storage_preflight;
 
 use std::env;
@@ -14,6 +15,30 @@ use inventory::HostInventory;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments: Vec<String> = env::args().collect();
+    if arguments
+        .get(1)
+        .is_some_and(|argument| argument == "--plan-storage-allocation")
+    {
+        if arguments.len() != 8 {
+            eprintln!("usage: cloudforge-node-agent --plan-storage-allocation <project-uuid> <quota-gib> <used-gib> <reserved-gib> <requested-gib> <node-available-gib>");
+            std::process::exit(64);
+        }
+        let request = storage_allocation::StorageAllocationRequest {
+            project_id: arguments[2].clone(),
+            quota_gib: arguments[3].parse()?,
+            used_gib: arguments[4].parse()?,
+            reserved_gib: arguments[5].parse()?,
+            requested_gib: arguments[6].parse()?,
+            node_available_gib: arguments[7].parse()?,
+        };
+        let plan = request.build_plan()?;
+        println!("{}", serde_json::to_string_pretty(&plan)?);
+        if !plan.blockers.is_empty() {
+            std::process::exit(2);
+        }
+        return Ok(());
+    }
+
     if arguments
         .get(1)
         .is_some_and(|argument| argument == "--storage-capacity")
