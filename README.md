@@ -55,7 +55,7 @@ docs/
 - [x] Node identity configuration preflight (not remote authentication)
 - [x] Responsive browser console served by the API Gateway
 - [x] Overview, instance metadata, node readiness information, and API diagnostics
-- [ ] User authentication and role-based authorization
+- [x] Local user authentication and role-based authorization (development-only; production hardening pending)
 - [ ] Cryptographic mTLS enrollment and authenticated heartbeats
 - [ ] QEMU/KVM lifecycle management
 
