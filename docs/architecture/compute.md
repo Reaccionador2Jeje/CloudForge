@@ -118,3 +118,10 @@ source, validate image contents, sign artifacts, distribute images, or boot
 them. The supplied URL and checksum are untrusted metadata until a future
 trusted ingestion and verification pipeline exists. Instance creation does
 not yet resolve `image_ref` against this catalog.
+
+
+## Windows Server installation media
+
+The image catalog distinguishes prepared disk images (`disk_image`, using `qcow2` or `raw`) from installer media (`installer_iso`, using `iso`). Migration `0006_image_installer_media.sql` seeds draft x86_64 entries for Windows Server 2025 and Windows Server 2022 without embedding or redistributing Microsoft installation files.
+
+These are catalog placeholders, not ready-to-boot cloud images. The future Windows guest workflow must obtain media through authorized Microsoft channels, verify provenance and checksums through a trusted ingestion process, test supported virtual firmware and devices, provide required storage/network drivers (including a supported VirtIO driver path where applicable), and enforce a valid Windows Server licensing/activation model. CloudForge does not provide product keys, activation bypasses, or license rights.
