@@ -31,6 +31,8 @@ jobs:
         run: |
           test -f wrangler.jsonc
           test -f web/console/index.html
+          test -f worker/index.js
+          node --check worker/index.js
           echo "Cloudflare configuration and console assets found."
 
       - name: Deploy to Cloudflare Workers
