@@ -62,6 +62,7 @@ fn installation_blockers(image: &InstallerImage) -> Vec<String> {
         "virtual_hardware_compatibility_not_validated".to_owned(),
         "virtio_driver_delivery_not_implemented".to_owned(),
         "windows_server_licensing_workflow_not_configured".to_owned(),
+        "trusted_installer_media_ingestion_not_implemented".to_owned(),
     ];
 
     if image.status != "verified"
@@ -95,6 +96,7 @@ pub async fn get_installation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<InstallationJob>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
+    let mut transaction = pool.begin().await?;
     let job = sqlx::query_as::<_, InstallationJob>(
         "SELECT id, instance_id, profile_id, installer_image_id, status,
                 execution_enabled, blockers, created_by, created_at, updated_at
@@ -174,7 +176,7 @@ pub async fn create_installation(
     .bind(image.id)
     .bind(SqlJson(blockers))
     .bind(user.id)
-    .fetch_one(pool)
+    .fetch_one(&mut *transaction)
     .await?;
 
     sqlx::query(
@@ -187,8 +189,9 @@ pub async fn create_installation(
     .bind(job.id.to_string())
     .bind(request.profile_id.trim())
     .bind(slug)
-    .execute(pool)
+    .execute(&mut *transaction)
     .await?;
+    transaction.commit().await?;
 
     Ok((StatusCode::CREATED, Json(job)))
 }
@@ -226,6 +229,9 @@ mod tests {
         assert!(blockers.contains(&"installer_media_not_verified".to_owned()));
         assert!(blockers.contains(
             &"windows_server_licensing_workflow_not_configured".to_owned()
+        ));
+        assert!(blockers.contains(
+            &"trusted_installer_media_ingestion_not_implemented".to_owned()
         ));
     }
 }
