@@ -249,3 +249,25 @@ the QCOW2 file, create directories, invoke `qemu-img`, define a libvirt
 domain, launch QEMU, or change host state. Do not enable execution until the
 listed infrastructure and security gates are implemented and tested on a
 dedicated Linux/KVM host.
+
+
+## Read-only storage pool preflight
+
+The Node Agent exposes a read-only storage readiness report:
+
+```bash
+cloudforge-node-agent --storage-preflight
+```
+
+It inspects the fixed default pool path
+`/var/lib/cloudforge/pools/default`, reports whether it exists and is a
+directory, checks for symlinks in the path, reports its permission mode and
+owner UID, and checks whether `qemu-img --version` succeeds. The command
+returns a versioned JSON report and exit code 2 when a prerequisite is
+missing.
+
+The preflight does not create the pool, write test files, change permissions,
+inspect or modify disk contents, or create QCOW2 images. Permission mode bits
+are only a preliminary signal: effective access, service identity, free space,
+filesystem quotas, mount properties, and safe ownership policy still require
+dedicated validation before a storage provider can be enabled.
