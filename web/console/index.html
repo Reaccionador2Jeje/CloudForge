@@ -19,11 +19,11 @@
       <button data-page="diagnostics"><span class="nav-icon">⌁</span>Diagnóstico</button>
     </nav>
     <div class="side-divider"></div><div class="side-caption">Plataforma</div><nav class="nav" aria-label="Componentes"><button data-page="components"><span class="nav-icon">◫</span>Componentes</button></nav>
-    <div class="side-note">ATDEV DEV · CLOUD INFRASTRUCTURE<br>Console 0.5 · Development</div>
+    <div class="side-note">ATDEV DEV · CLOUD INFRASTRUCTURE<br>Console 1.0 · API-connected</div>
   </aside>
   <main>
     <header class="top">
-      <div><div class="eyebrow">Control plane / Development</div><h1 id="page-title">Resumen</h1><div class="muted">Panel de control de tu infraestructura CloudForge.</div></div>
+      <div><div class="eyebrow">Control plane / Secure API proxy</div><h1 id="page-title">Resumen</h1><div class="muted">Panel de control de tu infraestructura CloudForge.</div></div>
       <div class="status"><span id="api-dot" class="dot"></span><span id="api-label">Conectando con API…</span><button id="logout-button" hidden>Cerrar sesión</button></div>
     </header>
 
@@ -50,7 +50,7 @@
       </article>
     </section>
 
-    <div class="demo-banner" role="status"><strong>Modo demostración pública:</strong> esta consola es estática. No está conectada al API Gateway ni a una infraestructura real. Los valores de ejemplo están simulados y las operaciones están deshabilitadas.</div>
+    <div class="notice" id="connection-banner" role="status">Conectando con CloudForge API a través del proxy protegido…</div>
 
     <section class="panel active" id="page-overview">
       <div class="grid">
@@ -61,15 +61,15 @@
       </div>
       <div class="split">
         <article class="card"><div class="section"><h2>Estado de servicios</h2><button id="refresh-overview">Actualizar</button></div><div class="rows" id="service-rows"><div class="empty">Consultando servicios…</div></div></article>
-        <article class="card"><div class="section"><h2>Acerca de esta versión</h2><span class="pill">0.5 preview</span></div><p class="muted">CloudForge Console permite probar el API Gateway y gestionar registros de instancias. Todavía no aprovisiona máquinas virtuales reales.</p><p class="muted">El agente de nodos aún no envía inventario al Control Plane.</p></article>
+        <article class="card"><div class="section"><h2>Acerca de esta versión</h2><span class="pill">0.5 preview</span></div><p class="muted">CloudForge Console consulta el API Gateway y gestiona registros persistidos de instancias. El aprovisionamiento de máquinas virtuales todavía no está implementado.</p><p class="muted">El agente de nodos aún no envía inventario al Control Plane.</p></article>
       </div>
     </section>
 
     <section class="panel" id="page-instances">
       <div class="section"><h2>Registro de instancias</h2><button id="refresh-instances">Actualizar lista</button></div>
       <article class="card">
-        <p class="muted">Vista de ejemplo con registros simulados. La creación y consulta contra el API están deshabilitadas en el sitio público.</p>
-        <form class="form" id="instance-form"><input id="instance-name" maxlength="63" placeholder="Deshabilitado en demo" required aria-label="Nombre de la instancia" disabled><button type="submit" disabled>Crear registro (demo)</button></form>
+        <p class="muted">Registros de metadata persistidos por el API Gateway. Crear un registro no aprovisiona una máquina virtual.</p>
+        <form class="form" id="instance-form"><input id="instance-name" maxlength="63" placeholder="Nombre de la instancia" required aria-label="Nombre de la instancia" disabled><button type="submit" disabled>Crear registro</button></form>
       </article>
       <article class="card" style="margin-top:14px"><div class="table-wrap"><table><thead><tr><th>Nombre</th><th>ID</th><th>Estado</th><th>Creada</th></tr></thead><tbody id="instance-table"><tr><td colspan="4" class="empty">Cargando registros…</td></tr></tbody></table></div></article>
     </section>
@@ -99,7 +99,7 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
-const DEMO_MODE = !(location.hostname === '127.0.0.1' || location.hostname === 'localhost') || location.port === '8787'; // Public Workers and Wrangler preview stay in demo mode; local API Gateway remains testable.
+// All environments use the same API contract; Cloudflare Worker proxies API routes to a protected origin. // Public Workers and Wrangler preview stay in demo mode; local API Gateway remains testable.
 const $=id=>document.getElementById(id);
 let accessToken=null;
 const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(accessToken?{Authorization:'Bearer '+accessToken}:{}),...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
@@ -111,6 +111,7 @@ document.querySelectorAll('.nav button').forEach(button=>button.addEventListener
 function acceptSession(session){
  accessToken=session.access_token;
  $('auth-panel').hidden=true;
+ $('instance-name').disabled=false;$('instance-form').querySelector('button').disabled=false;
  $('logout-button').hidden=false;
  toast('Sesión iniciada: '+session.user.display_name);
  loadOverview();loadInstances();loadNodes();
@@ -129,25 +130,16 @@ $('bootstrap-form').addEventListener('submit',async event=>{
 });
 $('logout-button').addEventListener('click',async()=>{
  try{await api('/v1/auth/logout',{method:'POST'})}catch(error){toast('La sesión ya no está activa: '+error.message)}
- accessToken=null;$('logout-button').hidden=true;$('auth-panel').hidden=false;toast('Sesión cerrada');loadOverview();
+ accessToken=null;$('logout-button').hidden=true;$('auth-panel').hidden=false;$('instance-name').disabled=true;$('instance-form').querySelector('button').disabled=true;toast('Sesión cerrada');loadOverview();
 });
-if(DEMO_MODE)$('auth-panel').hidden=true;
-
 async function loadOverview(){
-  if(DEMO_MODE){
-    $('api-dot').className='dot'; $('api-label').textContent='Modo demo · API no conectada';
-    $('metric-api').textContent='Demo'; $('metric-db').textContent='No conectada'; $('metric-instances').textContent='2*';
-    $('service-rows').innerHTML='';
-    [['Consola web','publicada como archivo estático'],['API Gateway','no conectado'],['PostgreSQL','no conectado'],['Provisionamiento VM','no implementado']].forEach(([name,value])=>{const row=document.createElement('div');row.className='row';const x=document.createElement('span');x.textContent=name;const y=document.createElement('span');y.className='pill warn';y.textContent=value;row.append(x,y);$('service-rows').append(row)}); return;
-  }
-  try{const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);setApi(true,'API Gateway online');$('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';$('service-rows').innerHTML='';[['API Gateway',live.status],['Base de datos',ready.database],['Versión',info.version],['Entorno',info.stage]].forEach(([name,value])=>{const row=document.createElement('div');row.className='row';const x=document.createElement('span');x.textContent=name;const y=document.createElement('span');y.className='pill '+(value==='ok'||value==='connected'?'ok':'warn');y.textContent=value;row.append(x,y);$('service-rows').append(row)});try{const instances=await api('/v1/instances');$('metric-instances').textContent=instances.length}catch{$('metric-instances').textContent='N/D'}}catch(error){setApi(false,'API Gateway sin conexión');$('metric-db').textContent='—';$('service-rows').innerHTML='<div class="empty">No se pudo conectar: '+escapeHtml(error.message)+'</div>'}}
+  try{const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);setApi(true,'API Gateway online');$('connection-banner').hidden=true;$('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';$('service-rows').innerHTML='';[['API Gateway',live.status],['Base de datos',ready.database],['Versión',info.version],['Entorno',info.stage]].forEach(([name,value])=>{const row=document.createElement('div');row.className='row';const x=document.createElement('span');x.textContent=name;const y=document.createElement('span');y.className='pill '+(value==='ok'||value==='connected'?'ok':'warn');y.textContent=value;row.append(x,y);$('service-rows').append(row)});try{const instances=await api('/v1/instances');$('metric-instances').textContent=instances.length}catch{$('metric-instances').textContent='N/D'}}catch(error){setApi(false,'API Gateway sin conexión');$('connection-banner').hidden=false;$('connection-banner').textContent='API Gateway no disponible: '+error.message;$('metric-db').textContent='—';$('service-rows').innerHTML='<div class="empty">No se pudo conectar: '+escapeHtml(error.message)+'</div>'}}
 
 function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function loadNodes(){
   const body=$('node-table');
   if(!body)return;
   body.innerHTML='';
-  if(DEMO_MODE){body.innerHTML='<tr><td colspan="5" class="empty">Demo pública: el registro real de nodos no está conectado.</td></tr>';return;}
   body.innerHTML='<tr><td colspan="5" class="empty">Consultando API…</td></tr>';
   try{
     const items=await api('/v1/nodes');
@@ -163,11 +155,10 @@ async function loadNodes(){
 }
 async function loadInstances(){
   const body=$('instance-table');body.innerHTML='';
-  if(DEMO_MODE){[['demo-web-01','demo-0001','sample · simulado','—'],['demo-worker-01','demo-0002','sample · simulado','—']].forEach(values=>{const row=document.createElement('tr');values.forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell)});body.append(row)});return;}
   body.innerHTML='<tr><td colspan="4" class="empty">Cargando…</td></tr>';
   try{const items=await api('/v1/instances');body.innerHTML='';if(!items.length){body.innerHTML='<tr><td colspan="4" class="empty">Todavía no hay registros.</td></tr>';return}items.forEach(item=>{const row=document.createElement('tr');[item.name,item.id,item.status,new Date(item.created_at).toLocaleString()].forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell)});body.append(row)})}catch(error){body.innerHTML='<tr><td colspan="4" class="empty">'+escapeHtml(error.message)+'</td></tr>'}}
 
-$('instance-form').addEventListener('submit',async event=>{event.preventDefault();if(DEMO_MODE){toast('Operación deshabilitada: consola en modo demo');return;}const button=event.submitter;button.disabled=true;try{await api('/v1/instances',{method:'POST',body:JSON.stringify({name:$('instance-name').value})});$('instance-name').value='';toast('Registro creado correctamente');await loadInstances();await loadOverview()}catch(error){toast('No se pudo crear: '+error.message)}finally{button.disabled=false}});
+$('instance-form').addEventListener('submit',async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{await api('/v1/instances',{method:'POST',body:JSON.stringify({name:$('instance-name').value})});$('instance-name').value='';toast('Registro creado correctamente');await loadInstances();await loadOverview()}catch(error){toast('No se pudo crear: '+error.message)}finally{button.disabled=false}});
 
 const stateLabels={'available':'Disponible','optional':'Opcional','local-only':'Solo local','preflight-only':'Preflight','planned':'Planificado','unavailable':'No disponible'};
 const stateClasses={'available':'ok','optional':'info','local-only':'info','preflight-only':'warn','planned':'','unavailable':'bad'};
@@ -192,49 +183,7 @@ function renderComponents(){
 async function loadComponents(){
  const grid=$('component-grid');if(!grid)return;
  grid.innerHTML='<div class="card empty">Consultando registro de componentes…</div>';
- if(DEMO_MODE){componentCache=[
-  {id:"api-gateway",name:"API Gateway",state:"available",scope:"control-plane",description:"Axum HTTP API con endpoints de salud y administración."},
-  {id:"postgresql",name:"PostgreSQL",state:"optional",scope:"control-plane",description:"Persistencia de metadata cuando DATABASE_URL está configurado."},
-  {id:"web-console",name:"Web Console",state:"available",scope:"client",description:"Consola adaptable y demo pública estática."},
-  {id:"node-agent",name:"Node Agent",state:"local-only",scope:"data-plane",description:"Inventario local de hardware sin control remoto."},
-  {id:"node-identity",name:"Node Identity",state:"preflight-only",scope:"security",description:"Preflight local de identidad; no establece mTLS."},
-  {id:"node-registry",name:"Node Registry",state:"available",scope:"control-plane",description:"Registro PostgreSQL de nodos y consulta de solo lectura."},
-  {id:"node-protocol",name:"Node Agent Protocol",state:"planned",scope:"security",description:"Protocolo diseñado; transporte autenticado aún pendiente."},
-  {id:"node-mtls",name:"Node mTLS Enrollment",state:"planned",scope:"security",description:"Autoridad de certificados, enrollment, rotación y revocación."},
-  {id:"user-identity",name:"User Identity",state:"available",scope:"security",description:"Bootstrap protegido y login local con hashing Argon2id."},
-  {id:"rbac",name:"Role-Based Access Control",state:"available",scope:"security",description:"Middleware de permisos para instancias y nodos."},
-  {id:"sessions",name:"Session Management",state:"available",scope:"security",description:"Sesiones bearer con hash persistido, expiración y revocación."},
-  {id:"secrets",name:"Secrets Management",state:"planned",scope:"security",description:"Almacenamiento cifrado y rotación de claves."},
-  {id:"audit-service",name:"Audit Log",state:"available",scope:"observability",description:"Eventos de autenticación y denegaciones registrados."},
-  {id:"policy-engine",name:"Policy Engine",state:"planned",scope:"security",description:"Evaluación central de políticas y permisos."},
-  {id:"compute-api",name:"Compute API",state:"planned",scope:"control-plane",description:"API de cargas y ciclo de vida independiente del proveedor."},
-  {id:"compute-qemu",name:"QEMU/KVM Provider",state:"planned",scope:"data-plane",description:"Proveedor de máquinas virtuales; implementación diferida."},
-  {id:"containers-api",name:"Container API",state:"planned",scope:"control-plane",description:"Definiciones y ciclo de vida de cargas de contenedores."},
-  {id:"containers",name:"containerd Runtime",state:"planned",scope:"data-plane",description:"Integración containerd; implementación diferida."},
-  {id:"scheduler",name:"Resource Scheduler",state:"planned",scope:"control-plane",description:"Planificación según capacidad y elegibilidad de nodos."},
-  {id:"quotas",name:"Resource Quotas",state:"planned",scope:"control-plane",description:"Límites de CPU, memoria, almacenamiento y cargas."},
-  {id:"projects",name:"Projects and Tenancy",state:"planned",scope:"control-plane",description:"Aislamiento de proyectos, miembros y propiedad de recursos."},
-  {id:"image-service",name:"Image Service",state:"planned",scope:"control-plane",description:"Catálogo y distribución de imágenes versionadas."},
-  {id:"image-builder",name:"Image Builder",state:"planned",scope:"control-plane",description:"Creación, validación y publicación reproducible de imágenes."},
-  {id:"storage-api",name:"Storage API",state:"planned",scope:"control-plane",description:"API neutral de volúmenes, snapshots y backups."},
-  {id:"storage",name:"Storage Providers",state:"planned",scope:"data-plane",description:"Proveedor ZFS local y evaluación posterior de Ceph."},
-  {id:"backup-service",name:"Backup and Recovery",state:"planned",scope:"data-plane",description:"Políticas, retención, restauración y verificación."},
-  {id:"network-api",name:"Network API",state:"planned",scope:"control-plane",description:"Redes, subredes, interfaces y grupos de seguridad."},
-  {id:"networking",name:"Network Providers",state:"planned",scope:"data-plane",description:"Switching virtual, routing, firewall y aislamiento."},
-  {id:"ipam",name:"IP Address Management",state:"planned",scope:"control-plane",description:"Pools de direcciones y asignaciones sin conflictos."},
-  {id:"dns",name:"DNS Management",state:"planned",scope:"control-plane",description:"Gestión de zonas y registros DNS."},
-  {id:"load-balancer",name:"Load Balancing",state:"planned",scope:"data-plane",description:"Distribución de tráfico y health checks."},
-  {id:"metrics",name:"Metrics and Monitoring",state:"planned",scope:"observability",description:"Telemetría de nodos y cargas y estado histórico."},
-  {id:"logging",name:"Centralized Logging",state:"planned",scope:"observability",description:"Ingesta, indexación y retención de logs."},
-  {id:"alerting",name:"Alerting",state:"planned",scope:"observability",description:"Umbrales, alertas e incidentes."},
-  {id:"events",name:"Event Bus",state:"planned",scope:"control-plane",description:"Eventos internos fiables y coordinación asíncrona."},
-  {id:"notifications",name:"Notifications",state:"planned",scope:"control-plane",description:"Notificaciones operativas y preferencias de entrega."},
-  {id:"billing",name:"Usage and Billing",state:"planned",scope:"control-plane",description:"Medición de uso y asignación de costes; sin pagos."},
-  {id:"api-docs",name:"API Documentation",state:"planned",scope:"developer-experience",description:"OpenAPI versionada y política de compatibilidad."},
-  {id:"mobile-client",name:"Mobile Client",state:"planned",scope:"client",description:"Cliente multiplataforma Flutter."},
-  {id:"cli",name:"Command-Line Client",state:"planned",scope:"client",description:"CLI con gestión segura de credenciales."},
-  {id:"plugin-system",name:"Provider Plugin System",state:"planned",scope:"extensibility",description:"Interfaces de proveedores y negociación de capacidades."}
- ];renderComponents();return;}
+
  try{componentCache=await api('/v1/system/components');renderComponents();}
  catch(error){grid.innerHTML='';const card=document.createElement('div');card.className='card empty';card.textContent='No se pudo cargar el catálogo: '+error.message;grid.append(card);}
 }
@@ -244,7 +193,6 @@ $('refresh-components')?.addEventListener('click',loadComponents);
 
 async function diagnostics(){
   const target=$('diagnostic-rows');target.innerHTML='';
-  if(DEMO_MODE){[['Consola estática','OK · servida por Cloudflare Workers'],['API Gateway','No conectado · sin solicitud enviada'],['PostgreSQL','No conectado · sin solicitud enviada'],['Instancias','Muestras simuladas · no consultadas']].forEach(([path,result])=>{const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');value.className='pill warn';value.textContent=result;row.append(name,value);target.append(row)});return;}
   for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
 
 $('refresh-overview').addEventListener('click',loadOverview);$('refresh-instances').addEventListener('click',loadInstances);$('refresh-nodes').addEventListener('click',loadNodes);$('run-diagnostics').addEventListener('click',diagnostics);loadOverview();
