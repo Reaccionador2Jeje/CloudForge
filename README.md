@@ -145,3 +145,26 @@ cargo run -p cloudforge-node-agent
 It reports operating system, kernel, architecture, logical CPU count, memory, and mounted filesystem capacity. It runs without elevated privileges, opens no network listener, executes no remote commands, and sends no data to the API Gateway. Inventory values are observations, not scheduler reservations.
 
 The authenticated registration and heartbeat protocol is intentionally deferred until node identity, credential rotation/revocation, TLS validation, and authorization are implemented. See [Node Agent architecture](docs/architecture/node-agent.md).
+
+
+## Milestone 0.4 — Node Identity Preflight
+
+The Node Agent now includes an identity configuration preflight:
+
+```bash
+cargo run -p cloudforge-node-agent -- --check-identity
+```
+
+Configure the following environment variables before running it:
+
+| Variable | Purpose |
+| --- | --- |
+| `CLOUDFORGE_NODE_ID` | Stable node UUID |
+| `CLOUDFORGE_CONTROL_PLANE_URL` | Control Plane HTTPS URL |
+| `CLOUDFORGE_NODE_CLIENT_CERT` | Client certificate PEM path |
+| `CLOUDFORGE_NODE_CLIENT_KEY` | Private key PEM path |
+| `CLOUDFORGE_NODE_CA_CERT` | Trusted CA certificate PEM path |
+
+The preflight rejects non-HTTPS endpoints, checks required files and PEM markers, and on Unix requires owner-only private-key permissions. Its output contains only a safe configuration summary.
+
+**This is not remote authentication or enrollment yet.** It does not establish TLS, validate certificate chains, contact the API Gateway, or register a node. Actual mTLS transport, server-side certificate binding, authorization, revocation, and heartbeat persistence remain future work. See [Node identity and secure enrollment](docs/architecture/node-identity.md).
