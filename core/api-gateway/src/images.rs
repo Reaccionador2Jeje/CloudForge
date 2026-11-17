@@ -15,6 +15,7 @@ pub struct Image {
     pub os_version: String,
     pub architecture: String,
     pub disk_format: String,
+    pub artifact_type: String,
     pub source_url: Option<String>,
     pub checksum_sha256: Option<String>,
     pub status: String,
@@ -29,6 +30,8 @@ pub struct CreateImageRequest {
     pub os_version: String,
     pub architecture: String,
     pub disk_format: String,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
     pub source_url: Option<String>,
     pub checksum_sha256: Option<String>,
 }
@@ -48,6 +51,8 @@ fn validate_image(request: CreateImageRequest) -> Result<CreateImageRequest, Api
     let os_version = request.os_version.trim();
     let architecture = request.architecture.trim();
     let disk_format = request.disk_format.trim().to_ascii_lowercase();
+    let artifact_type = request.artifact_type.as_deref().map(str::trim).map(str::to_ascii_lowercase)
+        .unwrap_or_else(|| if disk_format == "iso" { "installer_iso".to_owned() } else { "disk_image".to_owned() });
 
     if !validate_token(slug, 96, "._/-")
         || !slug.chars().next().is_some_and(|c| c.is_ascii_alphanumeric())
@@ -66,8 +71,13 @@ fn validate_image(request: CreateImageRequest) -> Result<CreateImageRequest, Api
     if !matches!(architecture, "x86_64" | "aarch64") {
         return Err(ApiError::Validation("architecture must be x86_64 or aarch64".to_owned()));
     }
-    if !matches!(disk_format.as_str(), "qcow2" | "raw") {
-        return Err(ApiError::Validation("disk_format must be qcow2 or raw".to_owned()));
+    if !matches!(disk_format.as_str(), "qcow2" | "raw" | "iso") {
+        return Err(ApiError::Validation("disk_format must be qcow2, raw, or iso".to_owned()));
+    }
+    if !matches!(artifact_type.as_str(), "disk_image" | "installer_iso")
+        || (disk_format == "iso") != (artifact_type == "installer_iso")
+    {
+        return Err(ApiError::Validation("installer_iso artifacts must use ISO format; disk_image artifacts must use qcow2 or raw".to_owned()));
     }
 
     let source_url = request.source_url.as_deref().map(str::trim).filter(|v| !v.is_empty());
@@ -91,6 +101,7 @@ fn validate_image(request: CreateImageRequest) -> Result<CreateImageRequest, Api
         os_version: os_version.to_owned(),
         architecture: architecture.to_owned(),
         disk_format,
+        artifact_type: Some(artifact_type),
         source_url: source_url.map(str::to_owned),
         checksum_sha256: checksum.map(str::to_ascii_lowercase),
     })
@@ -99,7 +110,7 @@ fn validate_image(request: CreateImageRequest) -> Result<CreateImageRequest, Api
 pub async fn list_images(State(state): State<AppState>) -> Result<Json<Vec<Image>>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let images = sqlx::query_as::<_, Image>(
-        "SELECT id, slug, name, os_family, os_version, architecture, disk_format,
+        "SELECT id, slug, name, os_family, os_version, architecture, disk_format, artifact_type,
                 source_url, checksum_sha256, status, created_at
          FROM images ORDER BY name ASC, os_version DESC, architecture ASC",
     )
@@ -115,9 +126,9 @@ pub async fn create_image(
     let request = validate_image(request)?;
     let pool: &PgPool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let image = sqlx::query_as::<_, Image>(
-        "INSERT INTO images (slug, name, os_family, os_version, architecture, disk_format, source_url, checksum_sha256)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING id, slug, name, os_family, os_version, architecture, disk_format,
+        "INSERT INTO images (slug, name, os_family, os_version, architecture, disk_format, artifact_type, source_url, checksum_sha256)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, slug, name, os_family, os_version, architecture, disk_format, artifact_type,
                    source_url, checksum_sha256, status, created_at",
     )
     .bind(request.slug)
@@ -126,6 +137,7 @@ pub async fn create_image(
     .bind(request.os_version)
     .bind(request.architecture)
     .bind(request.disk_format)
+    .bind(request.artifact_type)
     .bind(request.source_url)
     .bind(request.checksum_sha256)
     .fetch_one(pool)
@@ -145,6 +157,7 @@ mod tests {
             os_version: "24.04".to_owned(),
             architecture: "x86_64".to_owned(),
             disk_format: "qcow2".to_owned(),
+            artifact_type: None,
             source_url: Some("https://cloud-images.ubuntu.com/".to_owned()),
             checksum_sha256: Some("a".repeat(64)),
         }
@@ -173,6 +186,29 @@ mod tests {
 
         let mut image = request();
         image.disk_format = "vdi".to_owned();
+        assert!(validate_image(image).is_err());
+    }
+
+    #[test]
+    fn accepts_windows_server_installer_iso_metadata() {
+        let mut image = request();
+        image.slug = "windows-server/2025".to_owned();
+        image.name = "Windows Server 2025".to_owned();
+        image.os_family = "windows-server".to_owned();
+        image.os_version = "2025".to_owned();
+        image.disk_format = "iso".to_owned();
+        image.artifact_type = Some("installer_iso".to_owned());
+        image.source_url = None;
+        image.checksum_sha256 = None;
+        let image = validate_image(image).unwrap();
+        assert_eq!(image.artifact_type.as_deref(), Some("installer_iso"));
+    }
+
+    #[test]
+    fn rejects_mismatched_iso_artifact_type() {
+        let mut image = request();
+        image.disk_format = "iso".to_owned();
+        image.artifact_type = Some("disk_image".to_owned());
         assert!(validate_image(image).is_err());
     }
 
