@@ -62,6 +62,7 @@
       <div class="notice">El registro remoto de nodos permanece deshabilitado hasta completar autenticación mutua TLS, autorización, revocación y persistencia de heartbeats. Esta consola no acepta certificados ni secretos de nodos.</div>
       <article class="card" style="margin-top:14px"><h2>Preparar un Node Agent</h2><p class="muted">En el equipo que ejecutará el agente, puedes generar el inventario local con:</p><p><span class="code">cargo run -p cloudforge-node-agent</span></p><p class="muted">Para revisar la configuración de identidad:</p><p><span class="code">cargo run -p cloudforge-node-agent -- --check-identity</span></p><p class="muted">El segundo comando solo valida configuración local; no registra el nodo ni demuestra una conexión autenticada.</p></article>
       <article class="card" style="margin-top:14px"><h2>Estado de enrollment</h2><div class="rows"><div class="row"><span>Identidad del nodo</span><span class="pill warn">Local preflight</span></div><div class="row"><span>Canal mTLS</span><span class="pill warn">No implementado</span></div><div class="row"><span>Heartbeat</span><span class="pill warn">No implementado</span></div><div class="row"><span>QEMU/KVM</span><span class="pill">No conectado</span></div></div></article>
+      <article class="card" style="margin-top:14px"><div class="section"><h2>Nodos registrados</h2><button id="refresh-nodes">Actualizar lista</button></div><p class="muted">Consulta de solo lectura al registro local del Control Plane. No permite enrolar, activar ni revocar nodos.</p><div class="table-wrap"><table><thead><tr><th>Nombre</th><th>ID</th><th>Estado</th><th>Agente</th><th>Última conexión</th></tr></thead><tbody id="node-table"><tr><td colspan="5" class="empty">Cargando nodos…</td></tr></tbody></table></div></article>
     </section>
 
     <section class="panel" id="page-diagnostics">
@@ -79,7 +80,7 @@ const $=id=>document.getElementById(id);
 const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
 function toast(message){const el=$('toast');el.textContent=message;el.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display='none',3200)}
 function setApi(ok,label){$('api-dot').className='dot '+(ok?'ok':'bad');$('api-label').textContent=label;$('metric-api').textContent=ok?'Online':'Offline';}
-function showPage(page){document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('page-title').textContent=({overview:'Resumen',instances:'Instancias',nodes:'Nodos',diagnostics:'Diagnóstico'})[page];if(page==='instances')loadInstances()}
+function showPage(page){document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('page-title').textContent=({overview:'Resumen',instances:'Instancias',nodes:'Nodos',diagnostics:'Diagnóstico'})[page];if(page==='instances')loadInstances();if(page==='nodes')loadNodes()}
 document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.page)));
 async function loadOverview(){
   if(DEMO_MODE){
@@ -91,6 +92,24 @@ async function loadOverview(){
   try{const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);setApi(true,'API Gateway online');$('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';$('service-rows').innerHTML='';[['API Gateway',live.status],['Base de datos',ready.database],['Versión',info.version],['Entorno',info.stage]].forEach(([name,value])=>{const row=document.createElement('div');row.className='row';const x=document.createElement('span');x.textContent=name;const y=document.createElement('span');y.className='pill '+(value==='ok'||value==='connected'?'ok':'warn');y.textContent=value;row.append(x,y);$('service-rows').append(row)});try{const instances=await api('/v1/instances');$('metric-instances').textContent=instances.length}catch{$('metric-instances').textContent='N/D'}}catch(error){setApi(false,'API Gateway sin conexión');$('metric-db').textContent='—';$('service-rows').innerHTML='<div class="empty">No se pudo conectar: '+escapeHtml(error.message)+'</div>'}}
 
 function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function loadNodes(){
+  const body=$('node-table');
+  if(!body)return;
+  body.innerHTML='';
+  if(DEMO_MODE){body.innerHTML='<tr><td colspan="5" class="empty">Demo pública: el registro real de nodos no está conectado.</td></tr>';return;}
+  body.innerHTML='<tr><td colspan="5" class="empty">Consultando API…</td></tr>';
+  try{
+    const items=await api('/v1/nodes');
+    body.innerHTML='';
+    if(!items.length){body.innerHTML='<tr><td colspan="5" class="empty">No hay nodos registrados en PostgreSQL.</td></tr>';return;}
+    items.forEach(item=>{
+      const row=document.createElement('tr');
+      const values=[item.name,item.id,item.status,item.agent_version||'—',item.last_seen_at?new Date(item.last_seen_at).toLocaleString():'Nunca'];
+      values.forEach((value,index)=>{const cell=document.createElement('td');cell.textContent=value;if(index===2){const pill=document.createElement('span');pill.className='pill '+(value==='active'?'ok':value==='quarantined'||value==='revoked'?'warn':'');pill.textContent=value;cell.textContent='';cell.append(pill)}row.append(cell)});
+      body.append(row);
+    });
+  }catch(error){body.innerHTML='<tr><td colspan="5" class="empty">'+escapeHtml(error.message)+'</td></tr>'}
+}
 async function loadInstances(){
   const body=$('instance-table');body.innerHTML='';
   if(DEMO_MODE){[['demo-web-01','demo-0001','sample · simulado','—'],['demo-worker-01','demo-0002','sample · simulado','—']].forEach(values=>{const row=document.createElement('tr');values.forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell)});body.append(row)});return;}
@@ -101,9 +120,9 @@ $('instance-form').addEventListener('submit',async event=>{event.preventDefault(
 async function diagnostics(){
   const target=$('diagnostic-rows');target.innerHTML='';
   if(DEMO_MODE){[['Consola estática','OK · servida por Cloudflare Workers'],['API Gateway','No conectado · sin solicitud enviada'],['PostgreSQL','No conectado · sin solicitud enviada'],['Instancias','Muestras simuladas · no consultadas']].forEach(([path,result])=>{const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');value.className='pill warn';value.textContent=result;row.append(name,value);target.append(row)});return;}
-  for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
+  for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
 
-$('refresh-overview').addEventListener('click',loadOverview);$('refresh-instances').addEventListener('click',loadInstances);$('run-diagnostics').addEventListener('click',diagnostics);loadOverview();
+$('refresh-overview').addEventListener('click',loadOverview);$('refresh-instances').addEventListener('click',loadInstances);$('refresh-nodes').addEventListener('click',loadNodes);$('run-diagnostics').addEventListener('click',diagnostics);loadOverview();
 </script>
 </body>
 </html>
