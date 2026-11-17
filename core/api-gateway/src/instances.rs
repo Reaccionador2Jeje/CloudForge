@@ -1,10 +1,10 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::State, http::StatusCode, Extension, Json};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::error::ApiError;
+use crate::{auth::AuthenticatedUser, error::ApiError};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -93,12 +93,14 @@ fn validate_compute_spec(
 
 pub async fn list_instances(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Json<Vec<Instance>>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let instances = sqlx::query_as::<_, Instance>(
         "SELECT id, name, status, vcpu, memory_mib, image_ref, created_at
-         FROM instances ORDER BY created_at DESC",
+         FROM instances WHERE owner_user_id = $1 ORDER BY created_at DESC",
     )
+    .bind(user.id)
     .fetch_all(pool)
     .await?;
 
@@ -107,6 +109,7 @@ pub async fn list_instances(
 
 pub async fn create_instance(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(request): Json<CreateInstanceRequest>,
 ) -> Result<(StatusCode, Json<Instance>), ApiError> {
     let name = validate_instance_name(&request.name)?;
@@ -117,10 +120,11 @@ pub async fn create_instance(
     )?;
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let instance = sqlx::query_as::<_, Instance>(
-        "INSERT INTO instances (name, vcpu, memory_mib, image_ref)
-         VALUES ($1, $2, $3, $4)
+        "INSERT INTO instances (owner_user_id, name, vcpu, memory_mib, image_ref)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING id, name, status, vcpu, memory_mib, image_ref, created_at",
     )
+    .bind(user.id)
     .bind(name)
     .bind(vcpu)
     .bind(memory_mib)
