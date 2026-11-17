@@ -19,9 +19,7 @@ pub struct NodeSummary {
 
 /// Lists registered nodes for the local control-plane console.
 /// This is read-only: it cannot enroll, activate, or revoke nodes.
-pub async fn list_nodes(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<NodeSummary>>, ApiError> {
+pub async fn list_nodes(State(state): State<AppState>) -> Result<Json<Vec<NodeSummary>>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let nodes = sqlx::query_as::<_, NodeSummary>(
         "SELECT id, name, status, agent_version, last_seen_at, created_at
