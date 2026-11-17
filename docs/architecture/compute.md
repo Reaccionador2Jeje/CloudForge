@@ -291,3 +291,25 @@ planned QCOW2 allocation is sparse. It is an observation, not a reservation;
 free space can change immediately after the report, so a future provider must
 re-check capacity atomically near allocation time and enforce quotas/reservations.
 The command does not create files, reserve blocks, or modify the filesystem.
+
+
+## Quota-aware storage allocation planning
+
+The Node Agent exposes a validation-only allocation planner:
+
+```bash
+cloudforge-node-agent --plan-storage-allocation <project-uuid> <quota-gib> <used-gib> <reserved-gib> <requested-gib> <node-available-gib>
+```
+
+The planner validates a project UUID, applies the project's quota to existing
+usage plus outstanding reservations plus the new request, and checks that
+the node has the requested virtual size plus the fixed 10 GiB safety reserve.
+It reports projected usage, remaining quota, required node capacity, and
+machine-readable blockers. Arithmetic saturates rather than wrapping.
+
+This is not a persistent quota ledger and does not create a reservation.
+Inputs must eventually come from authenticated control-plane records, not
+tenant-supplied counters. Concurrent allocation requires a transactional
+reservation ledger with row locking or equivalent serialization, idempotency
+keys, release/expiry handling, audit events, and a fresh node-capacity check.
+Both `execution_enabled` and `reservation_created` remain false.
