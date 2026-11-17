@@ -377,6 +377,19 @@ enabled. See [Compute architecture](docs/architecture/compute.md).
 
 
 
+
+
+### Storage capacity check
+
+Check the filesystem capacity for a requested disk (including a 10 GiB reserve):
+
+```bash
+cloudforge-node-agent --storage-capacity 40
+```
+
+This read-only estimate does not reserve space or create a disk.
+See [Compute architecture](docs/architecture/compute.md).
+
 ### Storage pool preflight
 
 Inspect the default pool and `qemu-img` availability without changing the host:
