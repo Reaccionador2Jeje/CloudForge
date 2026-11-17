@@ -50,7 +50,7 @@ The Worker only forwards a fixed set of endpoints and methods. It does not accep
 
 ## Deploy from GitHub Actions
 
-This is the recommended deployment path for Android/Termux because Wrangler's local runtime is not supported on Android ARM64.
+This is the recommended deployment path for Android/Termux because Wrangler's local runtime is not supported on Android ARM64. Relevant changes pushed to `main` also trigger this workflow automatically; manual dispatch remains available.
 
 1. In `Reaccionador2Jeje/CloudForge`, open **Settings → Secrets and variables → Actions**.
 2. Confirm the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` exist. Keep them private.
