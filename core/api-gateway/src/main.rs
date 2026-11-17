@@ -173,6 +173,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 get(guest_profiles::list_guest_profiles),
             )
             .route(
+                "/v1/compute/installations",
+                get(installations::list_installations)
+                    .post(installations::create_installation)
+                    .route_layer(middleware::from_fn_with_state(
+                        installation_gate.clone(),
+                        auth::require_permission,
+                    )),
+            )
+            .route(
+                "/v1/compute/installations/:id",
+                get(installations::get_installation).route_layer(
+                    middleware::from_fn_with_state(installation_gate, auth::require_permission),
+                ),
+            )
+            .route(
                 "/v1/images",
                 get(images::list_images)
                     .post(images::create_image)
