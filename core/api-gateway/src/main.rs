@@ -1,3 +1,4 @@
+mod auth;
 mod components;
 mod config;
 mod error;
@@ -6,7 +7,7 @@ mod nodes;
 
 use std::net::SocketAddr;
 
-use axum::{response::Html, routing::get, Json, Router};
+use axum::{middleware, response::Html, routing::{get, post}, Json, Router};
 use config::AppConfig;
 use instances::{create_instance, list_instances, AppState};
 use serde::Serialize;
@@ -116,6 +117,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let state = AppState { pool };
+    let instance_gate = auth::PermissionGate { state: state.clone(), resource: "instances" };
+    let node_gate = auth::PermissionGate { state: state.clone(), resource: "nodes" };
     let app = Router::new()
         .route("/", get(web_console))
         .route("/console", get(web_console))
@@ -123,9 +126,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/v1/system/info", get(system_info))
+        .route("/v1/auth/bootstrap", post(auth::bootstrap))
+        .route("/v1/auth/login", post(auth::login))
+        .route("/v1/auth/me", get(auth::me).route_layer(middleware::from_fn_with_state(state.clone(), auth::require_session)))
+        .route("/v1/auth/logout", post(auth::logout).route_layer(middleware::from_fn_with_state(state.clone(), auth::require_session)))
         .route("/v1/system/components", get(components::list_components))
-        .route("/v1/instances", get(list_instances).post(create_instance))
-        .route("/v1/nodes", get(nodes::list_nodes))
+        .route("/v1/instances", get(list_instances).post(create_instance).route_layer(middleware::from_fn_with_state(instance_gate, auth::require_permission)))
+        .route("/v1/nodes", get(nodes::list_nodes).route_layer(middleware::from_fn_with_state(node_gate, auth::require_permission)))
         .with_state(state);
 
     let listener = TcpListener::bind(address).await?;
