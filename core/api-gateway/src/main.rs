@@ -1,74 +1,74 @@
-use std::{env, net::SocketAddr};
+mod config;
+mod error;
+mod instances;
 
-use axum::{
-    http::StatusCode,
-    routing::get,
-    Json, Router,
-};
+use std::net::SocketAddr;
+
+use axum::{routing::get, Json, Router};
+use config::AppConfig;
+use instances::{create_instance, list_instances, AppState};
 use serde::Serialize;
+use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-
-#[derive(Clone, Debug)]
-struct AppConfig {
-    host: String,
-    port: u16,
-}
-
-impl AppConfig {
-    fn from_env() -> Result<Self, String> {
-        let host = env::var("CLOUDFORGE_HOST")
-            .unwrap_or_else(|_| "127.0.0.1".to_owned());
-
-        let port = env::var("CLOUDFORGE_PORT")
-            .unwrap_or_else(|_| "8080".to_owned())
-            .parse::<u16>()
-            .map_err(|_| "CLOUDFORGE_PORT must be a valid TCP port".to_owned())?;
-
-        if host.trim().is_empty() {
-            return Err("CLOUDFORGE_HOST cannot be empty".to_owned());
-        }
-
-        Ok(Self { host, port })
-    }
-
-    fn socket_addr(&self) -> Result<SocketAddr, String> {
-        format!("{}:{}", self.host, self.port)
-            .parse()
-            .map_err(|error| format!("Invalid listen address: {error}"))
-    }
-}
 
 #[derive(Serialize)]
 struct HealthResponse {
     status: &'static str,
     service: &'static str,
+    database: &'static str,
 }
 
 async fn live() -> Json<HealthResponse> {
     Json(HealthResponse {
         status: "ok",
         service: "cloudforge-api-gateway",
+        database: "not_checked",
     })
 }
 
-async fn ready() -> (StatusCode, Json<HealthResponse>) {
-    // This initial readiness endpoint only confirms that the HTTP service is running.
-    // Dependency checks will be added when the database and internal services are integrated.
+async fn ready(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> (axum::http::StatusCode, Json<HealthResponse>) {
+    let database_ready = match &state.pool {
+        Some(pool) => pool.acquire().await.is_ok(),
+        None => true, // Database is optional in the local API-only development mode.
+    };
+
+    let status = if database_ready {
+        axum::http::StatusCode::OK
+    } else {
+        axum::http::StatusCode::SERVICE_UNAVAILABLE
+    };
+
     (
-        StatusCode::OK,
+        status,
         Json(HealthResponse {
-            status: "ready",
+            status: if database_ready { "ready" } else { "degraded" },
             service: "cloudforge-api-gateway",
+            database: if state.pool.is_some() {
+                if database_ready { "connected" } else { "unavailable" }
+            } else {
+                "not_configured"
+            },
         }),
     )
 }
 
-fn app() -> Router {
-    Router::new()
-        .route("/health/live", get(live))
-        .route("/health/ready", get(ready))
+#[derive(Serialize)]
+struct SystemInfo {
+    name: &'static str,
+    version: &'static str,
+    stage: &'static str,
+}
+
+async fn system_info() -> Json<SystemInfo> {
+    Json(SystemInfo {
+        name: "CloudForge",
+        version: env!("CARGO_PKG_VERSION"),
+        stage: "development",
+    })
 }
 
 #[tokio::main]
@@ -81,15 +81,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let config = AppConfig::from_env()?;
-    let address = config.socket_addr()?;
+    let address: SocketAddr = config.socket_addr()?.parse()?;
+
+    let pool = if let Some(database_url) = config.database_url.as_deref() {
+        info!("Connecting to PostgreSQL");
+        let pool = PgPoolOptions::new()
+            .max_connections(config.database_max_connections)
+            .connect(database_url)
+            .await?;
+
+        sqlx::migrate!("./migrations").run(&pool).await?;
+        info!("Database migrations completed");
+        Some(pool)
+    } else {
+        info!("DATABASE_URL is not set; starting in API-only development mode");
+        None
+    };
+
+    let state = AppState { pool };
+    let app = Router::new()
+        .route("/health/live", get(live))
+        .route("/health/ready", get(ready))
+        .route("/v1/system/info", get(system_info))
+        .route(
+            "/v1/instances",
+            get(list_instances).post(create_instance),
+        )
+        .with_state(state);
+
     let listener = TcpListener::bind(address).await?;
+    info!(address = %listener.local_addr()?, "CloudForge API Gateway is listening");
 
-    info!(
-        address = %listener.local_addr()?,
-        "CloudForge API Gateway is listening"
-    );
-
-    axum::serve(listener, app())
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
 
