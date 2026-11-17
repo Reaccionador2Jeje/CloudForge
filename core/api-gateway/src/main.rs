@@ -1,3 +1,4 @@
+mod components;
 mod config;
 mod error;
 mod instances;
@@ -113,6 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/v1/system/info", get(system_info))
+        .route("/v1/system/components", get(components::list_components))
         .route("/v1/instances", get(list_instances).post(create_instance))
         .with_state(state);
 
