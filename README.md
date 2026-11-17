@@ -165,7 +165,7 @@ Configure the following environment variables before running it:
 | `CLOUDFORGE_NODE_CLIENT_KEY` | Private key PEM path |
 | `CLOUDFORGE_NODE_CA_CERT` | Trusted CA certificate PEM path |
 
-The preflight rejects non-HTTPS endpoints, checks required files and PEM markers, and on Unix requires owner-only private-key permissions. Its output contains only a safe configuration summary.
+The preflight rejects non-HTTPS endpoints, checks required files and PEM markers, and on Unix requires owner-only private-key permissions. Its output reports that file preflight passed while explicitly stating that authentication has not been established and no TLS session exists.
 
 **This is not remote authentication or enrollment yet.** It does not establish TLS, validate certificate chains, contact the API Gateway, or register a node. Actual mTLS transport, server-side certificate binding, authorization, revocation, and heartbeat persistence remain future work. See [Node identity and secure enrollment](docs/architecture/node-identity.md).
 
@@ -195,3 +195,16 @@ This is database groundwork only. No node enrollment or heartbeat endpoint is
 enabled, and no node is trusted or marked active from an unauthenticated report.
 The Node Agent remains local and read-only. See
 [Node Registry data model](docs/architecture/node-registry.md).
+
+
+## Milestone 0.7 — Node Agent Protocol Design
+
+The proposed communication contract is now documented in
+[Node Agent communication protocol](docs/architecture/node-agent-protocol.md).
+It specifies the future mTLS trust model, node identity binding, versioned
+message envelope, replay/idempotency expectations, validation limits, and
+rollout gates.
+
+This milestone is documentation and truthful preflight reporting only. It does
+not add a network client, TLS session, enrollment endpoint, heartbeat endpoint,
+or remote node operations.
