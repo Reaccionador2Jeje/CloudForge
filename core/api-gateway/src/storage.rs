@@ -40,9 +40,9 @@ pub struct StorageQuotaView {
 fn validate_idempotency_key(value: &str) -> Result<&str, ApiError> {
     let value = value.trim();
     if !(8..=MAX_IDEMPOTENCY_KEY_BYTES).contains(&value.len())
-        || !value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':')
-        })
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':'))
     {
         return Err(ApiError::Validation(
             "Idempotency-Key must contain 8-128 ASCII letters, digits, or -_.: characters"
@@ -56,17 +56,18 @@ async fn ensure_quota_row(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: Uuid,
 ) -> Result<i64, ApiError> {
-    sqlx::query("INSERT INTO storage_quotas (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING")
-        .bind(user_id)
-        .execute(&mut **transaction)
-        .await?;
-
-    let quota: i64 = sqlx::query_scalar(
-        "SELECT quota_gib FROM storage_quotas WHERE user_id = $1 FOR UPDATE",
+    sqlx::query(
+        "INSERT INTO storage_quotas (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
     )
     .bind(user_id)
-    .fetch_one(&mut **transaction)
+    .execute(&mut **transaction)
     .await?;
+
+    let quota: i64 =
+        sqlx::query_scalar("SELECT quota_gib FROM storage_quotas WHERE user_id = $1 FOR UPDATE")
+            .bind(user_id)
+            .fetch_one(&mut **transaction)
+            .await?;
     Ok(quota)
 }
 
@@ -75,13 +76,11 @@ pub async fn get_quota(
     Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Json<StorageQuotaView>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
-    let quota: i64 = sqlx::query_scalar(
-        "SELECT quota_gib FROM storage_quotas WHERE user_id = $1",
-    )
-    .bind(user.id)
-    .fetch_optional(pool)
-    .await?
-    .unwrap_or(100);
+    let quota: i64 = sqlx::query_scalar("SELECT quota_gib FROM storage_quotas WHERE user_id = $1")
+        .bind(user.id)
+        .fetch_optional(pool)
+        .await?
+        .unwrap_or(100);
 
     let used_gib: i64 = sqlx::query_scalar(
         "SELECT COALESCE(SUM(size_gib), 0)::BIGINT FROM storage_volumes
