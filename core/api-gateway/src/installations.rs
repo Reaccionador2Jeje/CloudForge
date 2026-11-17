@@ -8,11 +8,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{types::Json as SqlJson, FromRow};
 use uuid::Uuid;
 
-use crate::{
-    auth::AuthenticatedUser,
-    error::ApiError,
-    instances::AppState,
-};
+use crate::{auth::AuthenticatedUser, error::ApiError, instances::AppState};
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct InstallationJob {
@@ -65,10 +61,7 @@ fn installation_blockers(image: &InstallerImage) -> Vec<String> {
         "trusted_installer_media_ingestion_not_implemented".to_owned(),
     ];
 
-    if image.status != "verified"
-        || image.source_url.is_none()
-        || image.checksum_sha256.is_none()
-    {
+    if image.status != "verified" || image.source_url.is_none() || image.checksum_sha256.is_none() {
         blockers.push("installer_media_not_verified".to_owned());
     }
 
@@ -105,7 +98,9 @@ pub async fn get_installation(
     .bind(id)
     .fetch_optional(pool)
     .await?
-    .ok_or(ApiError::NotFound("installation job was not found".to_owned()))?;
+    .ok_or(ApiError::NotFound(
+        "installation job was not found".to_owned(),
+    ))?;
 
     Ok(Json(job))
 }
@@ -227,11 +222,7 @@ mod tests {
         let blockers = installation_blockers(&draft_image());
         assert!(blockers.contains(&"qemu_kvm_provider_unavailable".to_owned()));
         assert!(blockers.contains(&"installer_media_not_verified".to_owned()));
-        assert!(blockers.contains(
-            &"windows_server_licensing_workflow_not_configured".to_owned()
-        ));
-        assert!(blockers.contains(
-            &"trusted_installer_media_ingestion_not_implemented".to_owned()
-        ));
+        assert!(blockers.contains(&"windows_server_licensing_workflow_not_configured".to_owned()));
+        assert!(blockers.contains(&"trusted_installer_media_ingestion_not_implemented".to_owned()));
     }
 }
