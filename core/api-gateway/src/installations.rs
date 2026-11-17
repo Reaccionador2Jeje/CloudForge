@@ -128,12 +128,13 @@ pub async fn create_installation(
         ));
     }
 
-    let instance_exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM instances WHERE id = $1 AND owner_user_id = $2)")
-            .bind(request.instance_id)
-            .bind(user.id)
-            .fetch_one(pool)
-            .await?;
+    let instance_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM instances WHERE id = $1 AND owner_user_id = $2)",
+    )
+    .bind(request.instance_id)
+    .bind(user.id)
+    .fetch_one(pool)
+    .await?;
     if !instance_exists {
         return Err(ApiError::Validation(
             "instance_id does not identify an existing instance".to_owned(),
