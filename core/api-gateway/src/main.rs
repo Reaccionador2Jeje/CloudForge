@@ -73,6 +73,13 @@ async fn web_console() -> Html<&'static str> {
     Html(include_str!("../../../web/console/index.html"))
 }
 
+async fn web_styles() -> impl axum::response::IntoResponse {
+    (
+        [(axum::http::header::CONTENT_TYPE, "text/css; charset=utf-8")],
+        include_str!("../../../web/console/styles.css"),
+    )
+}
+
 async fn system_info() -> Json<SystemInfo> {
     Json(SystemInfo {
         name: "CloudForge",
@@ -112,6 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/", get(web_console))
         .route("/console", get(web_console))
+        .route("/styles.css", get(web_styles))
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/v1/system/info", get(system_info))
