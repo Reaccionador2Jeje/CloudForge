@@ -348,3 +348,14 @@ Windows guest provisioning still requires a future installation workflow, virtua
 ### Windows Server guest installation profiles
 
 `GET /v1/compute/guest-profiles` exposes read-only planned profiles for Windows Server 2025 and 2022. They describe proposed UEFI/Q35, VirtIO storage/network, ISO installation stages, and licensing/verification requirements. The profiles explicitly report `readiness: planned` and `execution_enabled: false`; CloudForge does not yet install Windows or launch QEMU/KVM guests.
+
+
+### Installation plan API
+
+Authenticated installation-plan endpoints are available:
+
+- `GET /v1/compute/installations`
+- `GET /v1/compute/installations/{id}`
+- `POST /v1/compute/installations`
+
+Create requests reference an existing `instance_id`, a Windows Server profile (`windows-server-2025` or `windows-server-2022`), and a matching installer catalog slug. Records remain `planned`, expose blocker identifiers, and enforce `execution_enabled = false`. This is a persistent plan registry only; no hypervisor, worker, disk creation, media download, or guest installation is active.
