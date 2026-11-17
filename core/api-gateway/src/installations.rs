@@ -64,7 +64,9 @@ fn installation_blockers(image: &InstallerImage) -> Vec<String> {
         "windows_server_licensing_workflow_not_configured".to_owned(),
     ];
 
-    if image.status != "verified" || image.source_url.is_none() || image.checksum_sha256.is_none()
+    if image.status != "verified"
+        || image.source_url.is_none()
+        || image.checksum_sha256.is_none()
     {
         blockers.push("installer_media_not_verified".to_owned());
     }
@@ -222,6 +224,8 @@ mod tests {
         let blockers = installation_blockers(&draft_image());
         assert!(blockers.contains(&"qemu_kvm_provider_unavailable".to_owned()));
         assert!(blockers.contains(&"installer_media_not_verified".to_owned()));
-        assert!(blockers.contains(&"windows_server_licensing_workflow_not_configured".to_owned()));
+        assert!(blockers.contains(
+            &"windows_server_licensing_workflow_not_configured".to_owned()
+        ));
     }
 }
