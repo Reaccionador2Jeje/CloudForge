@@ -157,3 +157,42 @@ Example request:
 New plans are stored with status `planned`, `execution_enabled: false`, and explicit blocker identifiers. Current blockers include the unavailable QEMU/KVM provider, unvalidated virtual hardware, missing VirtIO driver delivery, and the absent Windows Server licensing workflow. Draft installer media adds an `installer_media_not_verified` blocker. The API checks that the selected catalog entry matches the requested Windows Server version and is an x86_64 installer ISO.
 
 The registry records intent; it does not reserve resources, download media, create disks, start a VM, run Windows Setup, or claim installation progress. The database constraint prevents `execution_enabled` from being set to true in this milestone. A trusted worker, scheduler, tenant ownership checks, stage/event history, cancellation policy, and real QEMU/KVM integration are required before execution can be enabled.
+
+
+## First QEMU/KVM host adapter milestone
+
+The Node Agent now has a local, read-only QEMU/libvirt preflight command:
+
+```bash
+cloudforge-node-agent --compute-preflight
+```
+
+It checks that the host is Linux, that `/dev/kvm` exists, that
+`qemu-system-x86_64` and `virsh` are available, and that the local
+`qemu:///system` libvirt connection responds. When libvirt is reachable, it
+also reads the names of defined domains. The command emits a JSON report and
+returns exit code 2 when any prerequisite is missing.
+
+This is an initial host-side adapter, not a provisioner. It invokes only
+fixed, read-only commands without a shell and accepts no user-provided command
+arguments. It does not create, start, stop, delete, or modify VMs; allocate
+storage; change host networking; or expose libvirt to the network.
+
+### Linux host prerequisites
+
+On a supported Linux compute node, install the distribution packages for:
+
+- QEMU system emulator for x86_64.
+- KVM kernel support and access to `/dev/kvm`.
+- libvirt daemon and `virsh` client.
+- A running system libvirt service and an authorized CloudForge agent account.
+
+The agent must be run with the minimum local privileges required to access
+`/dev/kvm` and the system libvirt socket. Do not expose the libvirt socket or
+grant the agent unrestricted administrative access over the network.
+
+The current agent has no authenticated connection to the API Gateway. The
+preflight is local-only and must not be interpreted as a registered or trusted
+compute node. VM lifecycle operations remain disabled until node mTLS,
+enrollment, tenant ownership, scheduler reservations, managed storage, and
+network isolation are implemented and tested.
