@@ -73,7 +73,17 @@ pub struct PermissionGate {
 
 fn normalize_email(email: &str) -> Result<String, ApiError> {
     let value = email.trim().to_ascii_lowercase();
-    if value.len() < 3 || value.len() > 254 || !value.contains('@') {
+    let Some((local, domain)) = value.split_once('@') else {
+        return Err(ApiError::Validation(
+            "A valid email address is required".to_owned(),
+        ));
+    };
+    if local.is_empty()
+        || domain.is_empty()
+        || !domain.contains('.')
+        || value.len() < 3
+        || value.len() > 254
+    {
         return Err(ApiError::Validation(
             "A valid email address is required".to_owned(),
         ));
@@ -233,6 +243,7 @@ pub async fn login(
 ) -> Result<Json<SessionResponse>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let email = normalize_email(&request.email)?;
+    validate_password(&request.password)?;
     let user = sqlx::query_as::<_, StoredUser>(
         "SELECT id, email, display_name, password_hash
          FROM users WHERE email = $1 AND status = 'active'",
@@ -360,10 +371,10 @@ pub async fn require_permission(
     let Some(pool) = gate.state.pool.as_ref() else {
         return ApiError::DatabaseNotConfigured.into_response();
     };
-    let action = if request.method() == axum::http::Method::POST {
-        "create"
-    } else {
-        "read"
+    let action = match *request.method() {
+        axum::http::Method::GET | axum::http::Method::HEAD => "read",
+        axum::http::Method::POST => "create",
+        _ => "manage",
     };
     let permitted: Result<bool, sqlx::Error> = sqlx::query_scalar(
         "SELECT EXISTS (
