@@ -19,7 +19,7 @@
       <button data-page="diagnostics"><span class="nav-icon">⌁</span>Diagnóstico</button>
     </nav>
     <div class="side-divider"></div><div class="side-caption">Plataforma</div><nav class="nav" aria-label="Componentes"><button data-page="components"><span class="nav-icon">◫</span>Componentes</button></nav>
-    <div class="side-note">ATDEV DEV · CLOUD INFRASTRUCTURE<br>Console 1.0 · API-connected</div>
+    <div class="side-note">ATDEV DEV · CLOUD INFRASTRUCTURE<br>Console 1.1 · Secure proxy</div>
   </aside>
   <main>
     <header class="top">
@@ -99,7 +99,7 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
-// All environments use the same API contract; Cloudflare Worker proxies API routes to a protected origin. // Public Workers and Wrangler preview stay in demo mode; local API Gateway remains testable.
+// All environments use the same API contract; Cloudflare Worker proxies API routes to a protected origin.
 const $=id=>document.getElementById(id);
 let accessToken=null;
 const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(accessToken?{Authorization:'Bearer '+accessToken}:{}),...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
