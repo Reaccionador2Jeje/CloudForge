@@ -12,6 +12,7 @@ const ROUTES = new Map([
   ["/v1/storage/quota", ["GET"]],
   ["/v1/storage/reservations", ["GET", "POST"]],
   ["/v1/storage/reservations/", ["DELETE"]],
+  ["/v1/storage/volumes", ["GET", "POST"]],
   ["/v1/compute/providers", ["GET"]],
   ["/v1/compute/guest-profiles", ["GET"]],
   ["/v1/compute/installations", ["GET", "POST"]],
@@ -76,7 +77,8 @@ async function proxyApi(request, env) {
   const incoming = new URL(request.url);
   const methods = ROUTES.get(incoming.pathname)
     || (incoming.pathname.startsWith("/v1/compute/installations/") ? ["GET"] : null)
-    || (incoming.pathname.startsWith("/v1/storage/reservations/") && /^\/v1\/storage\/reservations\/[0-9a-f-]{36}$/i.test(incoming.pathname) ? ["DELETE"] : null);
+    || (incoming.pathname.startsWith("/v1/storage/reservations/") && /^\/v1\/storage\/reservations\/[0-9a-f-]{36}$/i.test(incoming.pathname) ? ["DELETE"] : null)
+    || (incoming.pathname.startsWith("/v1/storage/volumes/") && /^\/v1\/storage\/volumes\/[0-9a-f-]{36}$/i.test(incoming.pathname) ? ["DELETE"] : null);
 
   if (!methods) return jsonError(404, "API route not found");
   if (!methods.includes(request.method)) {
