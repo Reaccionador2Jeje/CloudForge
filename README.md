@@ -46,7 +46,7 @@ docs/
 
 ## Current status
 
-**Milestone 0.1 — Foundation**
+**Milestone 0.2 — Persistent Cloud Core**
 
 - [x] Rust workspace
 - [x] Axum API Gateway skeleton
@@ -56,7 +56,10 @@ docs/
 - [x] Graceful shutdown
 - [x] Initial architecture documentation
 - [x] Rust CI workflow
-- [ ] PostgreSQL integration
+- [x] Optional PostgreSQL integration and migrations
+- [x] Initial persistent instance registry API
+- [x] Structured API error responses
+- [x] Local PostgreSQL Compose environment
 - [ ] Identity and authorization
 - [ ] Node Agent
 - [ ] QEMU/KVM lifecycle management
@@ -67,22 +70,22 @@ The current API Gateway is a development foundation. It does not yet provision v
 
 Start the local PostgreSQL dependency (optional for health endpoints, required for instance persistence):
 
-\`\`\`bash
+```bash
 docker compose up -d postgres
-\`\`\`
+```
 
-Copy \`.env.example\` to \`.env\`, then start the API:
+Copy `.env.example` to `.env`, then start the API:
 
-\`\`\`bash
+```bash
 cargo run -p cloudforge-api-gateway
-\`\`\`
+```
 
-When \`DATABASE_URL\` is configured, the gateway applies SQL migrations at startup. The local Compose password is for development only; never expose this database or reuse that password in production.
+When `DATABASE_URL` is configured, the gateway applies SQL migrations at startup. The local Compose password is for development only; never expose this database or reuse that password in production.
 
 ### Initial instance registry API
 
-- \`GET /v1/instances\` — list registered instance records.
-- \`POST /v1/instances\` — create a pending registry record using JSON: \`{"name":"my-server"}\`.
+- `GET /v1/instances` — list registered instance records.
+- `POST /v1/instances` — create a pending registry record using JSON: `{"name":"my-server"}`.
 
 These endpoints manage database records only. They do **not** create or start virtual machines yet. Real provisioning will be introduced after the identity, authorization, and node-agent boundaries are designed.
 
