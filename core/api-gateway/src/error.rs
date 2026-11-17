@@ -32,9 +32,7 @@ impl IntoResponse for ApiError {
                 "not_found",
                 "The requested resource was not found".to_owned(),
             ),
-            Self::Validation(message) => {
-                (StatusCode::BAD_REQUEST, "validation_error", message)
-            }
+            Self::Validation(message) => (StatusCode::BAD_REQUEST, "validation_error", message),
             Self::DatabaseNotConfigured => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 "database_not_configured",
@@ -50,6 +48,13 @@ impl IntoResponse for ApiError {
             }
         };
 
-        (status, Json(ErrorBody { error: code, message })).into_response()
+        (
+            status,
+            Json(ErrorBody {
+                error: code,
+                message,
+            }),
+        )
+            .into_response()
     }
 }
