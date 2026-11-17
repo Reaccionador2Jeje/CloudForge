@@ -43,7 +43,7 @@ pub struct SessionResponse {
     pub user: UserView,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct UserView {
     pub id: Uuid,
     pub email: String,
@@ -138,7 +138,7 @@ pub async fn bootstrap(
         .ok_or(ApiError::BootstrapDisabled)?;
     let supplied_hash = Sha256::digest(request.bootstrap_token.as_bytes());
     let configured_hash = Sha256::digest(configured_token.as_bytes());
-    if supplied_hash.as_slice().ct_eq(configured_hash.as_slice()).unwrap_u8() != 1 {
+    if supplied_hash[..].ct_eq(&configured_hash[..]).unwrap_u8() != 1 {
         record_auth_event(pool, None, "auth.bootstrap.denied", "denied").await;
         return Err(ApiError::Unauthorized);
     }
