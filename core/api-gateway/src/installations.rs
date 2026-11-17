@@ -70,14 +70,17 @@ fn installation_blockers(image: &InstallerImage) -> Vec<String> {
 
 pub async fn list_installations(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Json<Vec<InstallationJob>>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let jobs = sqlx::query_as::<_, InstallationJob>(
         "SELECT id, instance_id, profile_id, installer_image_id, status,
                 execution_enabled, blockers, created_by, created_at, updated_at
          FROM installation_jobs
+         WHERE created_by = $1
          ORDER BY created_at DESC",
     )
+    .bind(user.id)
     .fetch_all(pool)
     .await?;
 
@@ -87,15 +90,17 @@ pub async fn list_installations(
 pub async fn get_installation(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    Extension(user): Extension<AuthenticatedUser>,
 ) -> Result<Json<InstallationJob>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let job = sqlx::query_as::<_, InstallationJob>(
         "SELECT id, instance_id, profile_id, installer_image_id, status,
                 execution_enabled, blockers, created_by, created_at, updated_at
          FROM installation_jobs
-         WHERE id = $1",
+         WHERE id = $1 AND created_by = $2",
     )
     .bind(id)
+    .bind(user.id)
     .fetch_optional(pool)
     .await?
     .ok_or(ApiError::NotFound(
@@ -124,8 +129,9 @@ pub async fn create_installation(
     }
 
     let instance_exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM instances WHERE id = $1)")
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM instances WHERE id = $1 AND owner_user_id = $2)")
             .bind(request.instance_id)
+            .bind(user.id)
             .fetch_one(pool)
             .await?;
     if !instance_exists {
