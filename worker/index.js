@@ -9,6 +9,10 @@ const ROUTES = new Map([
   ["/v1/auth/logout", ["POST"]],
   ["/v1/instances", ["GET", "POST"]],
   ["/v1/nodes", ["GET"]],
+  ["/v1/compute/providers", ["GET"]],
+  ["/v1/compute/guest-profiles", ["GET"]],
+  ["/v1/compute/installations", ["GET", "POST"]],
+  ["/v1/images", ["GET", "POST"]],
 ]);
 
 function jsonError(status, error) {
@@ -67,7 +71,7 @@ function configuredOrigin(value) {
 
 async function proxyApi(request, env) {
   const incoming = new URL(request.url);
-  const methods = ROUTES.get(incoming.pathname);
+  const methods = ROUTES.get(incoming.pathname) || (incoming.pathname.startsWith("/v1/compute/installations/") ? ["GET"] : null);
 
   if (!methods) return jsonError(404, "API route not found");
   if (!methods.includes(request.method)) {
