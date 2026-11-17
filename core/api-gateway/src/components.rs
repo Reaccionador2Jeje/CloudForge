@@ -28,6 +28,7 @@ fn component_catalog() -> Vec<ComponentStatus> {
         ComponentStatus { id: "audit-service", name: "Audit Log", state: "available", scope: "observability", description: "Authentication and authorization-denial events are written to append-only audit_events." },
         ComponentStatus { id: "policy-engine", name: "Policy Engine", state: "planned", scope: "security", description: "Central policy evaluation for resource ownership, permissions, and operation constraints." },
         ComponentStatus { id: "compute-api", name: "Compute API", state: "planned", scope: "control-plane", description: "Provider-neutral workload definitions and lifecycle API." },
+        ComponentStatus { id: "compute-provider-catalog", name: "Compute Provider Catalog", state: "available", scope: "control-plane", description: "Read-only provider capability and prerequisite catalog; does not provision workloads." },
         ComponentStatus { id: "compute-qemu", name: "QEMU/KVM Provider", state: "planned", scope: "data-plane", description: "Virtual machine provisioning and lifecycle provider; deliberately deferred." },
         ComponentStatus { id: "containers-api", name: "Container API", state: "planned", scope: "control-plane", description: "Provider-neutral container workload definitions and lifecycle API." },
         ComponentStatus { id: "containers", name: "containerd Runtime", state: "planned", scope: "data-plane", description: "Container runtime integration; deliberately deferred." },
