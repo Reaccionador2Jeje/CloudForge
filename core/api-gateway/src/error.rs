@@ -16,7 +16,9 @@ pub enum ApiError {
     Database(#[from] sqlx::Error),
     #[error("Authentication is required")]
     Unauthorized,
-    #[error("The requested resource was not found: {0}")]\n    NotFound(String),\n    #[error("The account lacks the required permission")]
+    #[error("The requested resource was not found: {0}")]
+    NotFound(String),
+    #[error("The account lacks the required permission")]
     Forbidden,
     #[error("Administrator bootstrap is not configured")]
     BootstrapDisabled,
@@ -41,7 +43,8 @@ impl IntoResponse for ApiError {
                 "unauthorized",
                 "A valid bearer session is required".to_owned(),
             ),
-            Self::NotFound(message) => (StatusCode::NOT_FOUND, "not_found", message),\n            Self::Forbidden => (
+            Self::NotFound(message) => (StatusCode::NOT_FOUND, "not_found", message),
+            Self::Forbidden => (
                 StatusCode::FORBIDDEN,
                 "forbidden",
                 "The account lacks the required permission".to_owned(),
