@@ -51,12 +51,13 @@ docs/
 - [x] Rust workspace and Axum API Gateway
 - [x] Optional PostgreSQL integration and instance/node metadata registries
 - [x] Read-only local Node Agent inventory and identity preflight
-- [x] Local user bootstrap, Argon2id login, bearer sessions, RBAC, and audit events
+- [x] Self-service account registration, one-time admin bootstrap, Argon2id login, bearer sessions, RBAC, and audit events
+- [x] Browser online/offline detection and Worker proxy configuration diagnostics
 - [x] Cloudflare Worker entry point with allowlisted API proxy routes
 - [x] HTTPS-only upstream validation and Cloudflare Access Service Token enforcement
 - [x] Public console no longer fabricates sample infrastructure data
 - [x] Add a Docker image and Compose deployment for the API Gateway and PostgreSQL
-- [ ] Deploy and protect a real API Gateway origin behind Cloudflare Tunnel and Access
+- [ ] Deploy and protect a real API Gateway origin behind Cloudflare Tunnel and Access; configure Worker origin and Access Service Token
 - [ ] Production authentication hardening and security review
 - [x] Read-only compute provider catalog and QEMU/KVM prerequisite model
 - [ ] VM specification, scheduling, trusted node operations, and QEMU/KVM lifecycle
