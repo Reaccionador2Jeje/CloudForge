@@ -30,6 +30,13 @@ pub struct BootstrapRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct RegisterRequest {
+    pub email: String,
+    pub password: String,
+    pub display_name: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
@@ -219,6 +226,81 @@ pub async fn bootstrap(
     sqlx::query(
         "INSERT INTO audit_events (actor_user_id, event_type, resource_type, resource_id, outcome)
          VALUES ($1, 'auth.bootstrap.completed', 'user', $2, 'success')",
+    )
+    .bind(user.id)
+    .bind(user.id.to_string())
+    .execute(&mut *transaction)
+    .await?;
+    transaction.commit().await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(SessionResponse {
+            access_token,
+            token_type: "Bearer",
+            expires_at,
+            user,
+        }),
+    ))
+}
+
+pub async fn register(
+    State(state): State<AppState>,
+    Json(request): Json<RegisterRequest>,
+) -> Result<(StatusCode, Json<SessionResponse>), ApiError> {
+    let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
+    let email = normalize_email(&request.email)?;
+    validate_password(&request.password)?;
+    let display_name = request.display_name.trim();
+    if display_name.is_empty() || display_name.len() > 80 {
+        return Err(ApiError::Validation(
+            "Display name must contain between 1 and 80 bytes".to_owned(),
+        ));
+    }
+
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = Argon2::default()
+        .hash_password(request.password.as_bytes(), &salt)
+        .map_err(|_| ApiError::Internal)?
+        .to_string();
+
+    let mut transaction = pool.begin().await?;
+    let user = sqlx::query_as::<_, UserView>(
+        "INSERT INTO users (email, password_hash, display_name, status)
+         VALUES ($1, $2, $3, 'active')
+         ON CONFLICT (email) DO NOTHING
+         RETURNING id, email, display_name",
+    )
+    .bind(&email)
+    .bind(&password_hash)
+    .bind(display_name)
+    .fetch_optional(&mut *transaction)
+    .await?
+    .ok_or_else(|| ApiError::Conflict("An account with this email already exists".to_owned()))?;
+
+    let role_id: Uuid = sqlx::query_scalar("SELECT id FROM roles WHERE name = 'member'")
+        .fetch_one(&mut *transaction)
+        .await?;
+    sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)")
+        .bind(user.id)
+        .bind(role_id)
+        .execute(&mut *transaction)
+        .await?;
+
+    let access_token = new_session_token();
+    let expires_at = Utc::now() + Duration::hours(SESSION_HOURS);
+    sqlx::query(
+        "INSERT INTO user_sessions (user_id, token_hash, expires_at)
+         VALUES ($1, $2, $3)",
+    )
+    .bind(user.id)
+    .bind(hash_token(&access_token))
+    .bind(expires_at)
+    .execute(&mut *transaction)
+    .await?;
+    sqlx::query(
+        "INSERT INTO audit_events (actor_user_id, event_type, resource_type, resource_id, outcome)
+         VALUES ($1, 'auth.register.completed', 'user', $2, 'success')",
     )
     .bind(user.id)
     .bind(user.id.to_string())
