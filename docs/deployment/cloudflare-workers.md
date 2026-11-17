@@ -10,7 +10,7 @@ CloudForge uses a Cloudflare Worker for the public web console and as a **same-o
 4. It forwards requests to `CLOUDFORGE_API_ORIGIN` over HTTPS and adds a Cloudflare Access Service Token.
 5. Cloudflare Access protects the API hostname before requests reach the Rust API Gateway.
 
-The Worker fails closed with HTTP 503 if the API origin or Access credentials are missing. It does not silently switch to simulated data. Browser requests are same-origin, so the console does not need permissive CORS rules.
+The Worker fails closed with HTTP 503 if the API origin or Access credentials are missing. It does not silently switch to simulated data. `GET /health/connectivity` is a Worker-local diagnostic endpoint that reports whether the Worker is reachable and whether the origin and Access settings are present; it never reveals secret values. Browser requests are same-origin, so the console does not need permissive CORS rules.
 
 ## Required backend topology
 
@@ -71,7 +71,7 @@ On the Linux API host:
 5. Configure Cloudflare Tunnel to route the protected API hostname to `http://127.0.0.1:8080`.
 6. Configure a Cloudflare Access application and a Service Auth policy for that hostname. The Worker Service Token must satisfy that policy.
 
-The public console's first-admin form sends the bootstrap token directly to the API through the protected Worker proxy. Bootstrap succeeds only once, while the users table is empty.
+The public console's first-admin form sends the bootstrap token directly to the API through the protected Worker proxy. Bootstrap succeeds only once, while the users table is empty. The separate self-service registration endpoint creates regular `member` accounts and does not require or expose the bootstrap token.
 
 ## Verify
 
@@ -81,11 +81,17 @@ After the origin and Access Service Token are configured:
 
 1. The console should report the API Gateway online.
 2. The component catalog should load from `GET /v1/system/components`.
-3. Sign in or create the first administrator using the one-time bootstrap token.
+3. Create a normal account using **Crear cuenta**, or create the first administrator using the one-time bootstrap token. Normal registrations receive the least-privilege `member` role. Sign in later using the email and password.
 4. Confirm the instance list reflects PostgreSQL records, not sample rows.
 5. Confirm logout revokes the session.
 
 A successful Worker deployment alone is not proof that the API host, database, Tunnel, or Access policy is working.
+
+## Account registration
+
+`POST /v1/auth/register` accepts `display_name`, `email`, and `password` (12–128 characters), creates an active account, assigns the least-privilege `member` role, and returns a 12-hour bearer session. Duplicate email addresses return HTTP 409. Existing users sign in through `POST /v1/auth/login`. The first-admin bootstrap remains separate and grants `platform_admin` only once.
+
+The browser detects the device's online/offline events and checks the Worker-local `/health/connectivity` endpoint. This distinguishes a device without Internet from an available console whose API origin or Access Service Token is not configured. `navigator.onLine` is only a browser connectivity hint; the Worker request is the actual same-origin reachability check.
 
 ## Security and implementation limits
 
@@ -93,5 +99,5 @@ A successful Worker deployment alone is not proof that the API host, database, T
 - The Worker requires HTTPS for the upstream origin and fails closed if the origin or Access Service Token is missing.
 - API responses are marked `Cache-Control: no-store`; cookies and upstream CORS headers are not forwarded.
 - Keep the API host private behind Cloudflare Tunnel and Access.
-- The current API authentication is an initial local-development foundation. Rate limiting, full account recovery and management, production security review, and complete operational hardening remain pending.
+- The current API authentication is an initial local-development foundation. Registration/login rate limiting, email verification, full account recovery and management, production security review, and complete operational hardening remain pending. Do not treat unrestricted self-registration as production-ready until abuse controls are added.
 - The instance registry stores metadata only. QEMU/KVM, containerd, storage providers, and node mTLS enrollment are not implemented yet.
