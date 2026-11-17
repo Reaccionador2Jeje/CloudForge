@@ -55,11 +55,12 @@ docs/
 - [x] Cloudflare Worker entry point with allowlisted API proxy routes
 - [x] HTTPS-only upstream validation and Cloudflare Access Service Token enforcement
 - [x] Public console no longer fabricates sample infrastructure data
+- [x] Add a Docker image and Compose deployment for the API Gateway and PostgreSQL
 - [ ] Deploy and protect a real API Gateway origin behind Cloudflare Tunnel and Access
 - [ ] Production authentication hardening and security review
 - [ ] QEMU/KVM, containerd, storage, networking, and node mTLS
 
-The Cloudflare Worker and console code are prepared for a protected API connection. The real Rust API Gateway and PostgreSQL still need to be hosted on a Linux server and connected through Cloudflare Tunnel and Access. Until that is configured, the public console reports the API as unavailable instead of displaying simulated data.
+The Cloudflare Worker and console code are prepared for a protected API connection. A Dockerfile and Compose service now package the Rust API Gateway with PostgreSQL for a Linux host. The host still needs to be provisioned and connected through Cloudflare Tunnel and Access. See [API host deployment](docs/deployment/api-host.md). Until that is configured, the public console reports the API as unavailable instead of displaying simulated data.
 
 ## Development
 
@@ -69,11 +70,13 @@ Requirements:
 - Cargo
 - Docker Compose (for local PostgreSQL)
 
-Start PostgreSQL:
+Start the API Gateway and PostgreSQL together on a Linux host:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d --build
 ```
+
+For the complete protected-host deployment, including Cloudflare Tunnel and Access, see [API host deployment](docs/deployment/api-host.md).
 
 Copy `.env.example` to `.env` and adjust it if necessary. The supplied database password is for local development only.
 
