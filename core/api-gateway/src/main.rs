@@ -233,9 +233,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             )
             .route(
                 "/v1/storage/reservations/{id}",
-                delete(storage::release_reservation).route_layer(
-                    middleware::from_fn_with_state(storage_gate, auth::require_permission),
-                ),
+                delete(storage::release_reservation).route_layer(middleware::from_fn_with_state(
+                    storage_gate,
+                    auth::require_permission,
+                )),
             )
             .with_state(state);
 
