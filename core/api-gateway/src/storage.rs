@@ -322,7 +322,9 @@ pub async fn create_volume(
 ) -> Result<(StatusCode, Json<StorageVolume>), ApiError> {
     let name = validate_volume_name(&request.name)?;
     if !matches!(request.format.as_str(), "qcow2" | "raw") {
-        return Err(ApiError::Validation("format must be qcow2 or raw".to_owned()));
+        return Err(ApiError::Validation(
+            "format must be qcow2 or raw".to_owned(),
+        ));
     }
 
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
@@ -362,7 +364,9 @@ pub async fn create_volume(
     }
 
     if reservation.status != "reserved" || reservation.expires_at <= Utc::now() {
-        return Err(ApiError::Conflict("Storage reservation is no longer active".to_owned()));
+        return Err(ApiError::Conflict(
+            "Storage reservation is no longer active".to_owned(),
+        ));
     }
 
     let name_exists: bool = sqlx::query_scalar(
@@ -373,7 +377,9 @@ pub async fn create_volume(
     .fetch_one(&mut *transaction)
     .await?;
     if name_exists {
-        return Err(ApiError::Conflict("A volume with this name already exists".to_owned()));
+        return Err(ApiError::Conflict(
+            "A volume with this name already exists".to_owned(),
+        ));
     }
 
     let volume = sqlx::query_as::<_, StorageVolume>(
@@ -389,12 +395,10 @@ pub async fn create_volume(
     .fetch_one(&mut *transaction)
     .await?;
 
-    sqlx::query(
-        "UPDATE storage_reservations SET status = 'consumed' WHERE id = $1",
-    )
-    .bind(reservation.id)
-    .execute(&mut *transaction)
-    .await?;
+    sqlx::query("UPDATE storage_reservations SET status = 'consumed' WHERE id = $1")
+        .bind(reservation.id)
+        .execute(&mut *transaction)
+        .await?;
 
     sqlx::query(
         "INSERT INTO audit_events
@@ -482,7 +486,10 @@ mod tests {
 
     #[test]
     fn accepts_safe_volume_names() {
-        assert_eq!(validate_volume_name("root-disk_01").unwrap(), "root-disk_01");
+        assert_eq!(
+            validate_volume_name("root-disk_01").unwrap(),
+            "root-disk_01"
+        );
     }
 
     #[test]
