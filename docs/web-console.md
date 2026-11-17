@@ -1,25 +1,48 @@
-# CloudForge Web Console — milestone 0.5
+# CloudForge Web Console — milestone 1.1
 
 ## Overview
 
-The development console is a static, responsive HTML/CSS/JavaScript application embedded into the API Gateway binary at compile time. The gateway serves it at:
+The console is a responsive HTML/CSS/JavaScript application embedded into the
+Rust API Gateway for local development and published as static assets on
+Cloudflare Workers for the public website.
+
+Locally, the API Gateway serves the console at:
 
 - `GET /`
 - `GET /console`
 
-Because the console and API share the same origin, the browser can call the existing API routes without a separate frontend server or permissive CORS configuration.
+On Cloudflare Workers, the static console is served from Workers Static Assets.
+Requests to approved `/health/*` and `/v1/*` routes are handled by the Worker
+proxy and forwarded to a separate HTTPS API origin protected by Cloudflare
+Access. The browser uses same-origin API paths; it does not contain upstream
+hostnames or Access credentials.
 
 ## Available screens
 
-- **Overview:** liveness, readiness, API version, database state, and instance count.
-- **Instances:** list metadata records and create a pending metadata record.
-- **Nodes:** explains the current Node Agent preflight and clearly shows that remote enrollment is not yet available.
-- **Components:** searches and filters the API component capability registry, including planned integrations.
-- **Diagnostics:** probes the health, system information, instance, node, and component API routes.
+- **Overview:** API liveness/readiness, API version, database state, and
+  instance count.
+- **Instances:** list metadata records and create pending metadata records
+  after login. This does not provision a VM.
+- **Nodes:** inspect registered node metadata and review the current enrollment
+  readiness. Remote mTLS enrollment and heartbeats are not implemented.
+- **Components:** search and filter the API component capability registry.
+- **Diagnostics:** probe health, system information, instance, and node API
+  routes.
+
+## Authentication
+
+The local API includes one-time first-admin bootstrap, Argon2id password
+hashing, login/logout, 12-hour bearer sessions, and initial RBAC middleware.
+The browser keeps the bearer token in memory only; closing or reloading the
+page clears it.
+
+The first administrator can be created only while the users table is empty
+and the API host has `CLOUDFORGE_BOOTSTRAP_TOKEN` configured. Never put this
+token in frontend code or the public repository.
 
 ## Run locally
 
-Start PostgreSQL if you want to test database-backed instance records:
+Start PostgreSQL if you want to test database-backed records:
 
 ```bash
 docker compose up -d postgres
@@ -31,31 +54,40 @@ Configure `.env`, then run:
 cargo run -p cloudforge-api-gateway
 ```
 
-Open `http://127.0.0.1:8080/` or `http://127.0.0.1:8080/console`.
+Open `http://127.0.0.1:8080/` or
+`http://127.0.0.1:8080/console`.
 
-## Important security boundary
+## Public Cloudflare deployment
 
-This is a development console, not an authenticated production admin panel. The existing instance API is not yet protected by user authentication and authorization. Keep the API bound to loopback (`CLOUDFORGE_HOST=127.0.0.1`) and do not expose it to the public Internet or an untrusted network.
+The Worker proxy requires:
 
-The console only creates and lists instance metadata; it does not provision virtual machines. The Nodes screen is informational. It does not enroll agents, accept certificates, or create node credentials.
+- `CLOUDFORGE_API_ORIGIN`: an HTTPS hostname routed through Cloudflare Tunnel
+  and protected by Cloudflare Access.
+- `CF_ACCESS_CLIENT_ID`: a Cloudflare Access Service Token client ID.
+- `CF_ACCESS_CLIENT_SECRET`: the corresponding secret.
 
-Before remote or multi-user deployment, CloudForge must implement user identity, session security, role-based authorization, CSRF protections for browser mutations where applicable, TLS termination, audit logging, and authenticated node enrollment.
+The two Access values must be Worker secrets. The proxy allows only the
+specific paths and HTTP methods defined in `worker/index.js`. It fails closed
+with HTTP 503 when the backend or Access credentials are missing. The console
+does not show simulated sample rows when the API is unavailable.
 
+See [Cloudflare Workers deployment](deployment/cloudflare-workers.md) for the
+complete topology and configuration steps.
 
-## Console design system and component catalog
+## Security and implementation limits
 
-The console loads its stylesheet from `/styles.css`, served from the
-`web/console/styles.css` static asset. The layout includes responsive
-navigation, status indicators, metric cards, tables, component cards, search,
-and state filters.
+The current authentication and RBAC are a development foundation, not a
+production security certification. Rate limiting, account recovery, full user
+and role administration, complete audit-query tooling, and a security review
+remain pending. Keep the Rust API bound to loopback behind Cloudflare Tunnel
+and Access; do not expose port 8080 directly to the public Internet.
 
-The Components screen calls `GET /v1/system/components` in local mode. In
-public Cloudflare demo mode, it uses explicitly simulated catalog entries and
-does not send API requests. The catalog is informational: a `planned` state
-does not mean that a backend, hypervisor, storage pool, or network service is
-installed or operational.
+The instance registry stores metadata only. It does not provision or start
+virtual machines. The Nodes screen does not enroll agents, accept certificates,
+or create node credentials. QEMU/KVM, containerd, storage providers, and
+network providers remain planned components until implemented and tested.
 
-The expanded catalog currently tracks API Gateway, PostgreSQL, Web Console,
-Node Agent, Node Registry, Node Identity, the proposed Node Agent protocol,
-mTLS enrollment, user identity/RBAC, audit, QEMU/KVM, container runtime,
-scheduler, image service, storage, networking, metrics, and mobile client.
+## Component catalog
+
+The Components screen calls `GET /v1/system/components`. A `planned` state
+means that the subsystem is a roadmap item, not an active backend service.
