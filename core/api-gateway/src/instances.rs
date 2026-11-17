@@ -16,12 +16,21 @@ pub struct Instance {
     pub id: Uuid,
     pub name: String,
     pub status: String,
+    pub vcpu: i32,
+    pub memory_mib: i32,
+    pub image_ref: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreateInstanceRequest {
     pub name: String,
+    /// Requested virtual CPU count. Defaults to one.
+    pub vcpu: Option<i32>,
+    /// Requested memory in MiB. Defaults to 1024 MiB.
+    pub memory_mib: Option<i32>,
+    /// Optional future catalog image identifier; no image is downloaded or booted.
+    pub image_ref: Option<String>,
 }
 
 fn validate_instance_name(name: &str) -> Result<&str, ApiError> {
@@ -37,12 +46,58 @@ fn validate_instance_name(name: &str) -> Result<&str, ApiError> {
     Ok(name)
 }
 
+fn validate_compute_spec(
+    vcpu: Option<i32>,
+    memory_mib: Option<i32>,
+    image_ref: Option<&str>,
+) -> Result<(i32, i32, Option<String>), ApiError> {
+    let vcpu = vcpu.unwrap_or(1);
+    let memory_mib = memory_mib.unwrap_or(1024);
+
+    if !(1..=64).contains(&vcpu) {
+        return Err(ApiError::Validation(
+            "vcpu must be between 1 and 64".to_owned(),
+        ));
+    }
+    if !(256..=262_144).contains(&memory_mib) {
+        return Err(ApiError::Validation(
+            "memory_mib must be between 256 and 262144".to_owned(),
+        ));
+    }
+
+    let image_ref = image_ref
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned);
+
+    if let Some(reference) = image_ref.as_deref() {
+        if reference.len() > 128
+            || !reference
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric()
+                    || matches!(character, '.' | '_' | ':' | '/' | '-'))
+            || !reference
+                .chars()
+                .next()
+                .is_some_and(|character| character.is_ascii_alphanumeric())
+        {
+            return Err(ApiError::Validation(
+                "image_ref must be a valid catalog-style identifier of at most 128 characters"
+                    .to_owned(),
+            ));
+        }
+    }
+
+    Ok((vcpu, memory_mib, image_ref))
+}
+
 pub async fn list_instances(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<Instance>>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let instances = sqlx::query_as::<_, Instance>(
-        "SELECT id, name, status, created_at FROM instances ORDER BY created_at DESC",
+        "SELECT id, name, status, vcpu, memory_mib, image_ref, created_at
+         FROM instances ORDER BY created_at DESC",
     )
     .fetch_all(pool)
     .await?;
@@ -55,11 +110,18 @@ pub async fn create_instance(
     Json(request): Json<CreateInstanceRequest>,
 ) -> Result<(StatusCode, Json<Instance>), ApiError> {
     let name = validate_instance_name(&request.name)?;
+    let (vcpu, memory_mib, image_ref) =
+        validate_compute_spec(request.vcpu, request.memory_mib, request.image_ref.as_deref())?;
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let instance = sqlx::query_as::<_, Instance>(
-        "INSERT INTO instances (name) VALUES ($1) RETURNING id, name, status, created_at",
+        "INSERT INTO instances (name, vcpu, memory_mib, image_ref)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, name, status, vcpu, memory_mib, image_ref, created_at",
     )
     .bind(name)
+    .bind(vcpu)
+    .bind(memory_mib)
+    .bind(image_ref)
     .fetch_one(pool)
     .await?;
 
@@ -91,5 +153,36 @@ mod tests {
     #[test]
     fn accepts_63_byte_names() {
         assert!(validate_instance_name(&"a".repeat(63)).is_ok());
+    }
+
+    #[test]
+    fn compute_spec_defaults_are_safe_and_predictable() {
+        assert_eq!(
+            validate_compute_spec(None, None, None).unwrap(),
+            (1, 1024, None)
+        );
+    }
+
+    #[test]
+    fn accepts_valid_compute_spec_and_normalizes_image_ref() {
+        assert_eq!(
+            validate_compute_spec(Some(8), Some(8192), Some(" ubuntu/24.04 ")).unwrap(),
+            (8, 8192, Some("ubuntu/24.04".to_owned()))
+        );
+    }
+
+    #[test]
+    fn rejects_compute_spec_outside_supported_limits() {
+        assert!(validate_compute_spec(Some(0), Some(1024), None).is_err());
+        assert!(validate_compute_spec(Some(65), Some(1024), None).is_err());
+        assert!(validate_compute_spec(Some(2), Some(255), None).is_err());
+        assert!(validate_compute_spec(Some(2), Some(262_145), None).is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_image_references() {
+        assert!(validate_compute_spec(Some(2), Some(2048), Some("../private")).is_err());
+        assert!(validate_compute_spec(Some(2), Some(2048), Some("ubuntu image")).is_err());
+        assert!(validate_compute_spec(Some(2), Some(2048), Some(&"a".repeat(129))).is_err());
     }
 }
