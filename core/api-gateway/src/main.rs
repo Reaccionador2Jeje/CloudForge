@@ -8,13 +8,14 @@ mod images;
 mod installations;
 mod instances;
 mod nodes;
+mod storage;
 
 use std::net::SocketAddr;
 
 use axum::{
     middleware,
     response::Html,
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use config::AppConfig;
@@ -142,6 +143,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         state: state.clone(),
         resource: "nodes",
     };
+    let storage_gate = auth::PermissionGate {
+        state: state.clone(),
+        resource: "storage",
+    };
     let app =
         Router::new()
             .route("/", get(web_console))
@@ -209,6 +214,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     node_gate,
                     auth::require_permission,
                 )),
+            )
+            .route(
+                "/v1/storage/quota",
+                get(storage::get_quota).route_layer(middleware::from_fn_with_state(
+                    storage_gate.clone(),
+                    auth::require_permission,
+                )),
+            )
+            .route(
+                "/v1/storage/reservations",
+                get(storage::list_reservations)
+                    .post(storage::create_reservation)
+                    .route_layer(middleware::from_fn_with_state(
+                        storage_gate.clone(),
+                        auth::require_permission,
+                    )),
+            )
+            .route(
+                "/v1/storage/reservations/{id}",
+                delete(storage::release_reservation).route_layer(
+                    middleware::from_fn_with_state(storage_gate, auth::require_permission),
+                ),
             )
             .with_state(state);
 
