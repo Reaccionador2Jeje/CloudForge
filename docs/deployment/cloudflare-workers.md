@@ -71,7 +71,7 @@ On the Linux API host:
 5. Configure Cloudflare Tunnel to route the protected API hostname to `http://127.0.0.1:8080`.
 6. Configure a Cloudflare Access application and a Service Auth policy for that hostname. The Worker Service Token must satisfy that policy.
 
-The public console's first-admin form sends the bootstrap token directly to the API through the protected Worker proxy. Bootstrap succeeds only once, while the users table is empty. The separate self-service registration endpoint creates regular `member` accounts and does not require or expose the bootstrap token.
+The public console's first-admin form sends the bootstrap token directly to the API through the protected Worker proxy. Bootstrap succeeds only once, while no platform administrator has been assigned. The separate self-service registration endpoint creates regular `member` accounts and does not require or expose the bootstrap token.
 
 ## Verify
 
