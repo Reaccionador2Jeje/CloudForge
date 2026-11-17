@@ -10,7 +10,7 @@ pub struct HostInventory {
     pub operating_system: Option<String>,
     pub os_version: Option<String>,
     pub kernel_version: Option<String>,
-    pub architecture: String,
+    pub architecture: Option<String>,
     pub cpu_logical_cores: usize,
     pub memory_total_bytes: u64,
     pub memory_available_bytes: u64,
