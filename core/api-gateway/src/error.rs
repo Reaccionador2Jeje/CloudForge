@@ -14,7 +14,7 @@ pub enum ApiError {
     Validation(String),
     #[error("Database is not configured")]
     DatabaseNotConfigured,
-    #[error("An internal service error occurred")]
+    #[error("A database operation failed")]
     Database(#[from] sqlx::Error),
 }
 
@@ -27,8 +27,14 @@ struct ErrorBody {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, code, message) = match self {
-            Self::NotFound => (StatusCode::NOT_FOUND, "not_found", self.to_string()),
-            Self::Validation(message) => (StatusCode::BAD_REQUEST, "validation_error", message),
+            Self::NotFound => (
+                StatusCode::NOT_FOUND,
+                "not_found",
+                "The requested resource was not found".to_owned(),
+            ),
+            Self::Validation(message) => {
+                (StatusCode::BAD_REQUEST, "validation_error", message)
+            }
             Self::DatabaseNotConfigured => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 "database_not_configured",
