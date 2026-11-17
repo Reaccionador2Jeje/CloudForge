@@ -58,7 +58,9 @@ docs/
 - [x] Add a Docker image and Compose deployment for the API Gateway and PostgreSQL
 - [ ] Deploy and protect a real API Gateway origin behind Cloudflare Tunnel and Access
 - [ ] Production authentication hardening and security review
-- [ ] QEMU/KVM, containerd, storage, networking, and node mTLS
+- [x] Read-only compute provider catalog and QEMU/KVM prerequisite model
+- [ ] VM specification, scheduling, trusted node operations, and QEMU/KVM lifecycle
+- [ ] containerd, storage, networking, and node mTLS
 
 The Cloudflare Worker and console code are prepared for a protected API connection. A Dockerfile and Compose service now package the Rust API Gateway with PostgreSQL for a Linux host. The host still needs to be provisioned and connected through Cloudflare Tunnel and Access. See [API host deployment](docs/deployment/api-host.md). Until that is configured, the public console reports the API as unavailable instead of displaying simulated data.
 
@@ -313,3 +315,10 @@ The Worker still does not host the Rust API or database. Deployment requires
 a Linux API host, private PostgreSQL, Cloudflare Tunnel, an Access application
 with a Service Auth policy, and Worker configuration values/secrets. See
 [Cloudflare Workers deployment](docs/deployment/cloudflare-workers.md).
+
+
+## Milestone 1.2 — Compute Provider Foundation
+
+The API now exposes `GET /v1/compute/providers`, a read-only catalog describing the QEMU/KVM target, intended capabilities, and required infrastructure. A compute architecture document defines the provider-neutral control plane, initial VM resource model, and delivery gates.
+
+This is the first compute control-plane foundation, not a hypervisor integration. The QEMU/KVM provider remains `planned`; no host commands are executed and no virtual machines can be created yet. See [Compute architecture](docs/architecture/compute.md).
