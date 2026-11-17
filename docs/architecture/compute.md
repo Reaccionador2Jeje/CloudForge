@@ -98,3 +98,23 @@ Example request:
 The API validates and stores a desired configuration only. It does not reserve
 capacity, select a node, download an image, create a disk, configure a network,
 or start a virtual machine.
+
+
+## Operating-system image catalog
+
+Migration `0005_image_catalog.sql` adds a versioned metadata registry. The
+authenticated `GET /v1/images` endpoint lists entries; `POST /v1/images`
+allows platform administrators to register draft entries. Operators and
+viewers have read-only access.
+
+Each entry records a stable slug, display name, OS family and version,
+architecture (`x86_64` or `aarch64`), disk format (`qcow2` or `raw`),
+optional HTTPS source URL, optional SHA-256 checksum, and lifecycle status.
+New records are always `draft`; the database prevents a record from being
+marked `verified` without a checksum.
+
+This is metadata registration only. CloudForge does not fetch or verify the
+source, validate image contents, sign artifacts, distribute images, or boot
+them. The supplied URL and checksum are untrusted metadata until a future
+trusted ingestion and verification pipeline exists. Instance creation does
+not yet resolve `image_ref` against this catalog.
