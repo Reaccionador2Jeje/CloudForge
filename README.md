@@ -401,6 +401,29 @@ cloudforge-node-agent --storage-preflight
 This is read-only and reports blockers; it does not create the pool or disk images.
 See [Compute architecture](docs/architecture/compute.md).
 
+### Storage quota and volume metadata API
+
+The authenticated API now provides personal storage quota accounting and
+30-minute idempotent reservations:
+
+- `GET /v1/storage/quota`
+- `GET /v1/storage/reservations`
+- `POST /v1/storage/reservations` (requires an `Idempotency-Key` header)
+- `DELETE /v1/storage/reservations/{id}`
+- `GET /v1/storage/volumes`
+- `POST /v1/storage/volumes` (converts an active reservation into a planned volume)
+- `DELETE /v1/storage/volumes/{id}` (planned/failed metadata only)
+
+New accounts receive a default 100 GiB quota. Planned volume records count
+against quota, and reservation-to-volume conversion is transactional and
+retry-safe. The console can create reservations and volume metadata plans.
+
+**This is not physical storage provisioning.** No QCOW2/RAW file is created,
+no `qemu-img` command is run, and no node capacity or provider is reserved.
+Real ZFS/Ceph integration, snapshots, backup/restore, and a trusted storage
+lifecycle executor remain pending. See
+[Storage quota and volume API](docs/storage-quotas.md).
+
 ### Combined VM provisioning plan
 
 The Node Agent can compose the validated QCOW2 disk plan and matching Q35/KVM
