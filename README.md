@@ -100,6 +100,7 @@ Health and information endpoints:
 - `GET /health/live`
 - `GET /health/ready`
 - `GET /v1/system/info`
+- `GET /v1/system/components` — read-only capability and implementation-status registry.
 
 Initial instance registry endpoints (PostgreSQL required):
 
@@ -115,6 +116,10 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
+
+## Component integration status
+
+The API exposes `GET /v1/system/components` as a read-only, versioned-by-API capability inventory. It distinguishes available services from optional, local-only, preflight-only, and planned components. This endpoint is descriptive: it does not imply that planned components are running or connected.
 
 ## Security
 
