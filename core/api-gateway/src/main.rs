@@ -48,7 +48,11 @@ async fn ready(
             status: if database_ready { "ready" } else { "degraded" },
             service: "cloudforge-api-gateway",
             database: if state.pool.is_some() {
-                if database_ready { "connected" } else { "unavailable" }
+                if database_ready {
+                    "connected"
+                } else {
+                    "unavailable"
+                }
             } else {
                 "not_configured"
             },
@@ -78,9 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
-    tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .init();
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let config = AppConfig::from_env()?;
     let address: SocketAddr = config.socket_addr()?.parse()?;
@@ -105,10 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/v1/system/info", get(system_info))
-        .route(
-            "/v1/instances",
-            get(list_instances).post(create_instance),
-        )
+        .route("/v1/instances", get(list_instances).post(create_instance))
         .with_state(state);
 
     let listener = TcpListener::bind(address).await?;
