@@ -180,7 +180,7 @@ CloudForge now includes a responsive development console served directly by the 
 - Nodes: Node Agent setup information and enrollment status.
 - Diagnostics: test the current API endpoints from the browser.
 
-The console is a static HTML/CSS/JavaScript application embedded into the gateway binary for local development. It can also be published independently as static assets on Cloudflare Workers. The public deployment uses a clearly marked demo mode: simulated sample rows only, no API requests, and no instance-creation actions.
+The console is a static HTML/CSS/JavaScript application embedded into the gateway binary for local development. It can also be published on Cloudflare Workers, where a same-origin Worker proxy forwards an allowlist of API routes to a separate HTTPS API origin protected by Cloudflare Access. The public console no longer displays simulated sample rows.
 
 **Security:** local user authentication, bearer sessions, and RBAC are implemented as an initial development foundation. Production rate limiting, account recovery, security review, and operational hardening remain pending. Keep the Rust API bound to `127.0.0.1` behind Cloudflare Tunnel and Access; do not expose port 8080 directly to the Internet. See [Web Console documentation](docs/web-console.md) and [Cloudflare Workers deployment](docs/deployment/cloudflare-workers.md).
 
