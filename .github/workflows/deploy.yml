@@ -1,6 +1,13 @@
 name: Deploy CloudForge Console
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - 'web/console/**'
+      - 'wrangler.jsonc'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
