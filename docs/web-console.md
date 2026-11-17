@@ -14,7 +14,8 @@ Because the console and API share the same origin, the browser can call the exis
 - **Overview:** liveness, readiness, API version, database state, and instance count.
 - **Instances:** list metadata records and create a pending metadata record.
 - **Nodes:** explains the current Node Agent preflight and clearly shows that remote enrollment is not yet available.
-- **Components:** searches and filters the API component capability registry, including planned integrations.\n- **Diagnostics:** probes the health, system information, instance, node, and component API routes.
+- **Components:** searches and filters the API component capability registry, including planned integrations.
+- **Diagnostics:** probes the health, system information, instance, node, and component API routes.
 
 ## Run locally
 
