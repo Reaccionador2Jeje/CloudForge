@@ -374,3 +374,8 @@ This is not VM provisioning and does not perform lifecycle operations or
 change host configuration. Node enrollment/mTLS, tenant isolation, scheduler,
 storage, and networking must be completed before remote VM management is
 enabled. See [Compute architecture](docs/architecture/compute.md).
+
+The Node Agent also provides a validation-only libvirt XML renderer via
+`cloudforge-node-agent --render-domain-xml <name> <vcpu> <memory-mib> <disk-path>`.
+It emits a typed Q35/KVM definition for a QCOW2 file within the CloudForge
+managed pool; it does not create disks, define domains, or start VMs.
