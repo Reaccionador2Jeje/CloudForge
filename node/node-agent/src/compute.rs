@@ -80,26 +80,26 @@ fn collect_domains() -> Option<Vec<LibvirtDomain>> {
 
     for uuid in uuids {
         // UUIDs are parsed and validated before being passed as a single argv item.
-        let name_output = command_output(
-            "virsh",
-            &["-c", "qemu:///system", "domname", uuid],
-        )?;
+        let name_output = command_output("virsh", &["-c", "qemu:///system", "domname", uuid])?;
         if !name_output.status.success() {
             return None;
         }
-        let name = String::from_utf8(name_output.stdout).ok()?.trim().to_owned();
+        let name = String::from_utf8(name_output.stdout)
+            .ok()?
+            .trim()
+            .to_owned();
         if name.is_empty() {
             return None;
         }
 
-        let state_output = command_output(
-            "virsh",
-            &["-c", "qemu:///system", "domstate", uuid],
-        )?;
+        let state_output = command_output("virsh", &["-c", "qemu:///system", "domstate", uuid])?;
         if !state_output.status.success() {
             return None;
         }
-        let state = String::from_utf8(state_output.stdout).ok()?.trim().to_owned();
+        let state = String::from_utf8(state_output.stdout)
+            .ok()?
+            .trim()
+            .to_owned();
         if state.is_empty() {
             return None;
         }
