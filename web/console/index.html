@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>CloudForge Console</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080d19;--panel:#111a2b;--panel2:#172238;--line:#263550;--text:#edf3ff;--muted:#9aabc5;--accent:#72a7ff;--green:#46d6a0;--yellow:#f4c76b;--red:#ff7c86}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -20%,#1b3156 0,transparent 45%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+    button,input{font:inherit}button{cursor:pointer;border:1px solid #3b5c8c;background:#244777;color:white;border-radius:10px;padding:10px 14px;font-weight:650}button:hover{filter:brightness(1.12)}button:disabled{opacity:.55;cursor:not-allowed}
+    .shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}.side{padding:26px 18px;border-right:1px solid var(--line);background:#0b1220}.brand{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:800;letter-spacing:.2px;margin:0 0 34px}.logo{width:35px;height:35px;border-radius:11px;background:linear-gradient(135deg,#78b5ff,#6755df);display:grid;place-items:center;color:#081225;font-weight:950}.nav{display:grid;gap:7px}.nav button{background:transparent;border-color:transparent;text-align:left;color:var(--muted);font-weight:550}.nav button.active,.nav button:hover{background:var(--panel2);border-color:var(--line);color:var(--text)}.side-note{position:sticky;top:calc(100vh - 110px);margin-top:50px;color:var(--muted);font-size:12px}
+    main{padding:30px clamp(18px,4vw,54px);max-width:1500px;width:100%;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}.eyebrow{color:var(--accent);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:1.4px}.top h1{font-size:clamp(25px,4vw,34px);margin:5px 0}.muted{color:var(--muted)}.status{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:999px;font-size:13px}.dot{width:8px;height:8px;border-radius:50%;background:var(--yellow)}.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.card{background:linear-gradient(150deg,#152139,#101827);border:1px solid var(--line);border-radius:15px;padding:18px;min-width:0}.metric-label{font-size:13px;color:var(--muted)}.metric{font-size:30px;font-weight:800;margin:8px 0 1px}.metric-sub{font-size:12px;color:var(--muted)}.section{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:26px 0 12px}.section h2{font-size:18px;margin:0}.split{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.rows{display:grid;gap:0}.row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.pill{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:4px 8px;color:var(--muted);white-space:nowrap}.pill.ok{color:var(--green);border-color:#286b59}.pill.warn{color:var(--yellow);border-color:#725c2b}.empty{padding:28px 10px;text-align:center;color:var(--muted)}.panel{display:none}.panel.active{display:block}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}th,td{padding:12px 10px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:600}.form{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.form input{background:#0b1322;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-width:180px;flex:1}.notice{border:1px solid #66542b;background:#302817;color:#f2d99e;padding:13px 15px;border-radius:11px;font-size:13px}.code{font:12px ui-monospace,SFMono-Regular,Consolas,monospace;background:#080e19;border:1px solid var(--line);padding:3px 6px;border-radius:6px}.toast{position:fixed;right:20px;bottom:20px;background:#172b45;border:1px solid #42628b;padding:12px 16px;border-radius:10px;display:none;max-width:min(90vw,420px)}.footer{color:var(--muted);font-size:12px;margin-top:28px}
+    @media(max-width:950px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.split{grid-template-columns:1fr}}@media(max-width:680px){.shell{grid-template-columns:1fr}.side{padding:13px 15px;border-right:0;border-bottom:1px solid var(--line)}.brand{margin:0 0 12px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;padding:8px 11px}.side-note{display:none}main{padding:22px 15px}.top{align-items:flex-start;flex-direction:column}.grid{gap:9px}.card{padding:14px}.metric{font-size:25px}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div class="logo">CF</div>CloudForge</div>
+    <nav class="nav" aria-label="Navegación principal">
+      <button class="active" data-page="overview">◈ &nbsp;Resumen</button>
+      <button data-page="instances">▦ &nbsp;Instancias</button>
+      <button data-page="nodes">⌘ &nbsp;Nodos</button>
+      <button data-page="diagnostics">⌁ &nbsp;Diagnóstico</button>
+    </nav>
+    <div class="side-note">ATDEV DEV · CLOUD INFRASTRUCTURE<br>Console 0.5 · Development</div>
+  </aside>
+  <main>
+    <header class="top">
+      <div><div class="eyebrow">Control plane / Development</div><h1 id="page-title">Resumen</h1><div class="muted">Panel de control de tu infraestructura CloudForge.</div></div>
+      <div class="status"><span id="api-dot" class="dot"></span><span id="api-label">Conectando con API…</span></div>
+    </header>
+
+    <section class="panel active" id="page-overview">
+      <div class="grid">
+        <article class="card"><div class="metric-label">API Gateway</div><div class="metric" id="metric-api">—</div><div class="metric-sub">Estado del servicio</div></article>
+        <article class="card"><div class="metric-label">Base de datos</div><div class="metric" id="metric-db">—</div><div class="metric-sub">Conectividad PostgreSQL</div></article>
+        <article class="card"><div class="metric-label">Instancias registradas</div><div class="metric" id="metric-instances">—</div><div class="metric-sub">Registros de metadata</div></article>
+        <article class="card"><div class="metric-label">Agentes conectados</div><div class="metric">0</div><div class="metric-sub">Enrollment seguro pendiente</div></article>
+      </div>
+      <div class="split">
+        <article class="card"><div class="section"><h2>Estado de servicios</h2><button id="refresh-overview">Actualizar</button></div><div class="rows" id="service-rows"><div class="empty">Consultando servicios…</div></div></article>
+        <article class="card"><div class="section"><h2>Acerca de esta versión</h2><span class="pill">0.5 preview</span></div><p class="muted">CloudForge Console permite probar el API Gateway y gestionar registros de instancias. Todavía no aprovisiona máquinas virtuales reales.</p><p class="muted">El agente de nodos aún no envía inventario al Control Plane.</p></article>
+      </div>
+    </section>
+
+    <section class="panel" id="page-instances">
+      <div class="section"><h2>Registro de instancias</h2><button id="refresh-instances">Actualizar lista</button></div>
+      <article class="card">
+        <p class="muted">Crea y consulta registros de metadata. Esto no crea una VM ni consume recursos de un servidor.</p>
+        <form class="form" id="instance-form"><input id="instance-name" maxlength="63" placeholder="Nombre de la instancia" required aria-label="Nombre de la instancia"><button type="submit">Crear registro</button></form>
+      </article>
+      <article class="card" style="margin-top:14px"><div class="table-wrap"><table><thead><tr><th>Nombre</th><th>ID</th><th>Estado</th><th>Creada</th></tr></thead><tbody id="instance-table"><tr><td colspan="4" class="empty">Cargando registros…</td></tr></tbody></table></div></article>
+    </section>
+
+    <section class="panel" id="page-nodes">
+      <div class="section"><h2>Nodos de infraestructura</h2><span class="pill warn">Enrollment pendiente</span></div>
+      <div class="notice">El registro remoto de nodos permanece deshabilitado hasta completar autenticación mutua TLS, autorización, revocación y persistencia de heartbeats. Esta consola no acepta certificados ni secretos de nodos.</div>
+      <article class="card" style="margin-top:14px"><h2>Preparar un Node Agent</h2><p class="muted">En el equipo que ejecutará el agente, puedes generar el inventario local con:</p><p><span class="code">cargo run -p cloudforge-node-agent</span></p><p class="muted">Para revisar la configuración de identidad:</p><p><span class="code">cargo run -p cloudforge-node-agent -- --check-identity</span></p><p class="muted">El segundo comando solo valida configuración local; no registra el nodo ni demuestra una conexión autenticada.</p></article>
+      <article class="card" style="margin-top:14px"><h2>Estado de enrollment</h2><div class="rows"><div class="row"><span>Identidad del nodo</span><span class="pill warn">Local preflight</span></div><div class="row"><span>Canal mTLS</span><span class="pill warn">No implementado</span></div><div class="row"><span>Heartbeat</span><span class="pill warn">No implementado</span></div><div class="row"><span>QEMU/KVM</span><span class="pill">No conectado</span></div></div></article>
+    </section>
+
+    <section class="panel" id="page-diagnostics">
+      <div class="section"><h2>Diagnóstico de API</h2><button id="run-diagnostics">Ejecutar diagnóstico</button></div>
+      <article class="card"><div class="rows" id="diagnostic-rows"><div class="empty">Pulsa “Ejecutar diagnóstico”.</div></div></article>
+      <p class="footer">Las comprobaciones se realizan desde el navegador contra el mismo origen que sirve esta consola.</p>
+    </section>
+    <div class="footer">CloudForge · Atdev Dev · Software libre · Entorno de desarrollo</div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+const $=id=>document.getElementById(id);
+const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
+function toast(message){const el=$('toast');el.textContent=message;el.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display='none',3200)}
+function setApi(ok,label){$('api-dot').className='dot '+(ok?'ok':'bad');$('api-label').textContent=label;$('metric-api').textContent=ok?'Online':'Offline';}
+function showPage(page){document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('page-title').textContent=({overview:'Resumen',instances:'Instancias',nodes:'Nodos',diagnostics:'Diagnóstico'})[page];if(page==='instances')loadInstances()}
+document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.page)));
+async function loadOverview(){try{const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);setApi(true,'API Gateway online');$('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';$('service-rows').innerHTML='';[['API Gateway',live.status],['Base de datos',ready.database],['Versión',info.version],['Entorno',info.stage]].forEach(([name,value])=>{const row=document.createElement('div');row.className='row';const a=document.createElement('span');a.textContent=name;const b=document.createElement('span');b.className='pill '+(value==='ok'||value==='connected'?'ok':'warn');b.textContent=value;row.append(a,b);$('service-rows').append(row)});try{const instances=await api('/v1/instances');$('metric-instances').textContent=instances.length}catch{$('metric-instances').textContent='N/D'}}catch(error){setApi(false,'API Gateway sin conexión');$('metric-db').textContent='—';$('service-rows').innerHTML='<div class="empty">No se pudo conectar: '+escapeHtml(error.message)+'</div>'}}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function loadInstances(){const body=$('instance-table');body.innerHTML='<tr><td colspan="4" class="empty">Cargando…</td></tr>';try{const items=await api('/v1/instances');body.innerHTML='';if(!items.length){body.innerHTML='<tr><td colspan="4" class="empty">Todavía no hay registros.</td></tr>';return}items.forEach(item=>{const row=document.createElement('tr');[item.name,item.id,item.status,new Date(item.created_at).toLocaleString()].forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell)});body.append(row)})}catch(error){body.innerHTML='<tr><td colspan="4" class="empty">'+escapeHtml(error.message)+'</td></tr>'}}
+$('instance-form').addEventListener('submit',async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{await api('/v1/instances',{method:'POST',body:JSON.stringify({name:$('instance-name').value})});$('instance-name').value='';toast('Registro creado correctamente');await loadInstances();await loadOverview()}catch(error){toast('No se pudo crear: '+error.message)}finally{button.disabled=false}});
+async function diagnostics(){const target=$('diagnostic-rows');target.innerHTML='';for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
+$('refresh-overview').addEventListener('click',loadOverview);$('refresh-instances').addEventListener('click',loadInstances);$('run-diagnostics').addEventListener('click',diagnostics);loadOverview();
+</script>
+</body>
+</html>
