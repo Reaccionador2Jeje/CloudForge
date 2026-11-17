@@ -226,3 +226,26 @@ sparse allocation, and a 1–2048 GiB virtual size. The planner does not create
 directories or files and does not invoke `qemu-img`; execution remains disabled
 until a storage provider enforces filesystem ownership, quotas, free-space
 checks, and safe lifecycle handling.
+
+
+## Composed VM provisioning plan
+
+The Node Agent now composes the QCOW2 disk planner and typed libvirt XML
+renderer into one deterministic VM plan:
+
+```bash
+cloudforge-node-agent --plan-vm <name> <vcpu> <memory-mib> <disk-name> <disk-size-gib>
+```
+
+The JSON output contains the validated disk plan, the matching libvirt domain
+XML, an explicit `execution_enabled: false` flag, and machine-readable
+blockers for the missing storage provider, trusted node enrollment, scheduler
+and capacity reservations, network isolation, and VM lifecycle executor.
+The disk path in the XML is taken directly from the validated disk plan, so
+the two artifacts cannot silently target different disk locations.
+
+This command is a planning and validation operation only. It does not create
+the QCOW2 file, create directories, invoke `qemu-img`, define a libvirt
+domain, launch QEMU, or change host state. Do not enable execution until the
+listed infrastructure and security gates are implemented and tested on a
+dedicated Linux/KVM host.
