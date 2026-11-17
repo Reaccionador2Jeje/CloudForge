@@ -20,6 +20,7 @@ pub struct StoragePreflight {
     pub blockers: Vec<&'static str>,
 }
 
+#[cfg(target_os = "linux")]
 fn inspect_path(path: &Path) -> (bool, bool, Option<u32>, Option<u32>, bool) {
     use std::os::unix::fs::MetadataExt;
 
