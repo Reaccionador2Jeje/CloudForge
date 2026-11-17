@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS installation_jobs (
     profile_id VARCHAR(64) NOT NULL,
     installer_image_id UUID NOT NULL REFERENCES images(id) ON DELETE RESTRICT,
     status VARCHAR(16) NOT NULL DEFAULT 'planned'
-        CHECK (status IN ('planned', 'cancelled')),
+        CHECK (status = 'planned'),
     execution_enabled BOOLEAN NOT NULL DEFAULT FALSE CHECK (execution_enabled = FALSE),
     blockers JSONB NOT NULL DEFAULT '[]'::jsonb
         CHECK (jsonb_typeof(blockers) = 'array'),
