@@ -183,3 +183,15 @@ CloudForge now includes a responsive development console served directly by the 
 The console is a static HTML/CSS/JavaScript application embedded into the gateway binary for local development. It can also be published independently as static assets on Cloudflare Workers. The public deployment uses a clearly marked demo mode: simulated sample rows only, no API requests, and no instance-creation actions.
 
 **Security:** the current API and instance metadata routes do not yet have user authentication or authorization. Keep the Rust API bound to `127.0.0.1` for local development and do not expose it to the public Internet. See [Web Console documentation](docs/web-console.md) and [Cloudflare Workers deployment](docs/deployment/cloudflare-workers.md).
+
+## Milestone 0.6 — Node Registry Foundation
+
+The PostgreSQL schema now includes a node registry foundation through
+`0002_create_nodes.sql`. It stores stable node IDs, names, lifecycle states
+(`pending`, `active`, `quarantined`, `revoked`), optional agent version,
+verified-certificate fingerprint, inventory snapshot, and heartbeat timestamp.
+
+This is database groundwork only. No node enrollment or heartbeat endpoint is
+enabled, and no node is trusted or marked active from an unauthenticated report.
+The Node Agent remains local and read-only. See
+[Node Registry data model](docs/architecture/node-registry.md).
