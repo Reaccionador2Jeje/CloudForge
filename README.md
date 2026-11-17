@@ -366,8 +366,9 @@ Create requests reference an existing `instance_id`, a Windows Server profile (`
 The Node Agent includes an initial local read-only QEMU/libvirt adapter.
 Run `cloudforge-node-agent --compute-preflight` on a Linux compute host to
 check `/dev/kvm`, the QEMU x86_64 binary, `virsh`, the system libvirt
-connection, and defined domain names. The command emits JSON and exits with
-code 2 if prerequisites are missing.
+connection, and defined domain UUIDs, names, and runtime states. The versioned
+JSON report includes a domain inventory availability flag and exits with code
+2 if a required check fails.
 
 This is not VM provisioning and does not perform lifecycle operations or
 change host configuration. Node enrollment/mTLS, tenant isolation, scheduler,
