@@ -35,7 +35,7 @@ fn component_catalog() -> Vec<ComponentStatus> {
         ComponentStatus { id: "scheduler", name: "Resource Scheduler", state: "planned", scope: "control-plane", description: "Capacity-aware placement, eligibility, quotas, and workload scheduling." },
         ComponentStatus { id: "quotas", name: "Resource Quotas", state: "planned", scope: "control-plane", description: "Per-project CPU, memory, storage, and workload limits." },
         ComponentStatus { id: "projects", name: "Projects and Tenancy", state: "planned", scope: "control-plane", description: "Tenant boundaries, project membership, and resource ownership." },
-        ComponentStatus { id: "image-service", name: "Image Service", state: "available", scope: "control-plane", description: "Authenticated, PostgreSQL-backed OS image metadata catalog; artifact download and verification pipeline are not implemented." },
+        ComponentStatus { id: "image-service", name: "Image Service", state: "available", scope: "control-plane", description: "Authenticated OS image metadata catalog supports disk images and installer ISO records; artifact ingestion and verification are not implemented." },
         ComponentStatus { id: "image-builder", name: "Image Builder", state: "planned", scope: "control-plane", description: "Reproducible image creation, validation, signing, and publishing pipeline." },
         ComponentStatus { id: "storage-api", name: "Storage API", state: "planned", scope: "control-plane", description: "Provider-neutral volume, snapshot, backup, and attachment definitions." },
         ComponentStatus { id: "storage", name: "Storage Providers", state: "planned", scope: "data-plane", description: "Local ZFS provider first; distributed Ceph evaluation later. Deliberately deferred." },
