@@ -30,6 +30,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if arguments
+        .get(1)
+        .is_some_and(|argument| argument == "--plan-disk")
+    {
+        if arguments.len() != 4 {
+            eprintln!("usage: cloudforge-node-agent --plan-disk <name> <size-gib>");
+            std::process::exit(64);
+        }
+        let request = storage::DiskRequest {
+            name: arguments[2].clone(),
+            size_gib: arguments[3].parse()?,
+        };
+        let plan = request.build_plan()?;
+        println!("{}", serde_json::to_string_pretty(&plan)?);
+        return Ok(());
+    }
+
+    if arguments
         .iter()
         .any(|argument| argument == "--compute-preflight")
     {
