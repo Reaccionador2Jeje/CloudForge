@@ -125,3 +125,12 @@ not yet resolve `image_ref` against this catalog.
 The image catalog distinguishes prepared disk images (`disk_image`, using `qcow2` or `raw`) from installer media (`installer_iso`, using `iso`). Migration `0006_image_installer_media.sql` seeds draft x86_64 entries for Windows Server 2025 and Windows Server 2022 without embedding or redistributing Microsoft installation files.
 
 These are catalog placeholders, not ready-to-boot cloud images. The future Windows guest workflow must obtain media through authorized Microsoft channels, verify provenance and checksums through a trusted ingestion process, test supported virtual firmware and devices, provide required storage/network drivers (including a supported VirtIO driver path where applicable), and enforce a valid Windows Server licensing/activation model. CloudForge does not provide product keys, activation bypasses, or license rights.
+
+
+## Windows Server guest installation profiles
+
+The read-only endpoint `GET /v1/compute/guest-profiles` publishes planned profiles for Windows Server 2025 and 2022. Each profile describes the intended x86_64 guest baseline: UEFI firmware, Q35 machine type, ISO installer media, VirtIO SCSI storage, and VirtIO network devices. These are proposed integration defaults, not tested production settings. Secure Boot and TPM behavior are explicitly marked as requiring validation.
+
+The profile includes an installation-stage outline: validate authorized media, allocate resources, prepare virtual hardware, attach the ISO, boot Windows Setup, load storage/network drivers, complete installation, verify guest health and licensing, then produce a reusable image. `execution_enabled` is false and `readiness` is `planned`; the endpoint does not create disks, start QEMU, install Windows, fetch ISOs, or activate licenses.
+
+Before enabling execution, CloudForge still needs a trusted node agent and scheduler, tenant-scoped authorization, storage/network providers, safe media ingestion and checksum verification, driver provenance controls, firmware/device compatibility tests, and a compliant Windows Server licensing/activation process.
