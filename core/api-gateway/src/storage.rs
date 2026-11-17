@@ -146,7 +146,9 @@ pub async fn list_reservations(
 ) -> Result<Json<Vec<StorageReservation>>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let reservations = sqlx::query_as::<_, StorageReservation>(
-        "SELECT id, idempotency_key, requested_gib, status, created_at, expires_at, released_at
+        "SELECT id, idempotency_key, requested_gib,
+                CASE WHEN status = 'reserved' AND expires_at <= NOW() THEN 'expired' ELSE status END AS status,
+                created_at, expires_at, released_at
          FROM storage_reservations
          WHERE user_id = $1
          ORDER BY created_at DESC
