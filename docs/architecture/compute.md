@@ -217,3 +217,12 @@ does not create the disk, call `virsh define`, start QEMU, or modify libvirt.
 The managed disk pool must be provisioned separately by a future storage
 provider. This renderer is a tested definition-building primitive, not a
 production-ready VM provisioner.
+
+## QCOW2 storage planning
+
+The Node Agent can produce a deterministic, validation-only disk plan using
+`storage::DiskRequest`. Plans use the managed default pool, QCOW2 format,
+sparse allocation, and a 1–2048 GiB virtual size. The planner does not create
+directories or files and does not invoke `qemu-img`; execution remains disabled
+until a storage provider enforces filesystem ownership, quotas, free-space
+checks, and safe lifecycle handling.
