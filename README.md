@@ -224,3 +224,23 @@ observability, audit, and client integrations.
 
 The catalog is a truthful implementation-status inventory. Components marked
 `planned` are not running services and do not provision infrastructure.
+
+
+## Milestone 0.9 — Shared Security Schema and Full Component Map
+
+The capability catalog now tracks 41 platform subsystems across the control
+plane, data plane, security, observability, clients, and extensibility. The
+public demo catalog mirrors the API catalog and labels future providers as
+planned rather than active.
+
+Migration 0003_identity_rbac_audit.sql adds foundational PostgreSQL tables
+for users, roles, permissions, role assignments, hashed session-token storage,
+and append-only audit events. It seeds role definitions only; it does not
+create users, assign privileges, enable login, or activate authorization
+middleware.
+
+See the full component map and implementation order in
+docs/architecture/component-map.md.
+QEMU/KVM, containerd, and storage providers remain intentionally deferred until
+identity, authorization, node trust, provider-neutral APIs, and scheduling
+foundations have been built and tested.
