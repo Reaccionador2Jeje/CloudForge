@@ -88,9 +88,9 @@ mod tests {
             plan.disk.managed_path,
             "/var/lib/cloudforge/pools/default/cf-demo-root.qcow2"
         );
-        assert!(plan.domain_xml.contains(
-            "<source file='/var/lib/cloudforge/pools/default/cf-demo-root.qcow2'/>"
-        ));
+        assert!(plan
+            .domain_xml
+            .contains("<source file='/var/lib/cloudforge/pools/default/cf-demo-root.qcow2'/>"));
         assert!(!plan.execution_enabled);
         assert!(!plan.blockers.is_empty());
     }
