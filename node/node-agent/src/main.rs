@@ -4,6 +4,7 @@ mod identity;
 mod inventory;
 pub mod provisioning;
 pub mod storage;
+pub mod storage_preflight;
 
 use std::env;
 
@@ -12,6 +13,22 @@ use inventory::HostInventory;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments: Vec<String> = env::args().collect();
+    if arguments
+        .get(1)
+        .is_some_and(|argument| argument == "--storage-preflight")
+    {
+        if arguments.len() != 2 {
+            eprintln!("usage: cloudforge-node-agent --storage-preflight");
+            std::process::exit(64);
+        }
+        let report = storage_preflight::collect_preflight();
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        if !report.provider_ready {
+            std::process::exit(2);
+        }
+        return Ok(());
+    }
+
     if arguments
         .get(1)
         .is_some_and(|argument| argument == "--plan-vm")
