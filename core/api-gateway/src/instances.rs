@@ -72,7 +72,10 @@ mod tests {
 
     #[test]
     fn trims_instance_names() {
-        assert_eq!(validate_instance_name("  test-node  ").unwrap(), "test-node");
+        assert_eq!(
+            validate_instance_name("  test-node  ").unwrap(),
+            "test-node"
+        );
     }
 
     #[test]
