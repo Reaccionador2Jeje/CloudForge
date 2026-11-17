@@ -22,7 +22,7 @@ pub struct DiskPlan {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum DiskPlanError {
-    #[error("disk name must be 1-48 lowercase ASCII letters, digits, hyphens, or underscores")]
+    #[error("disk name must start with a lowercase ASCII letter and contain at most 48 lowercase letters, digits, hyphens, or underscores")]
     InvalidName,
     #[error("disk size must be between 1 and 2048 GiB")]
     InvalidSize,
