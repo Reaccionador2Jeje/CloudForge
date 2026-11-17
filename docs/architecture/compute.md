@@ -68,3 +68,33 @@ scoped node-agent actions.
 - [ ] End-to-end create, stop, restart, delete, and recovery tests.
 
 No virtual machine is provisioned by the current milestone.
+
+## Implemented VM specification registry
+
+The existing authenticated `/v1/instances` registry now stores the first
+provider-neutral VM request fields:
+
+- `name`: required, 1–63 UTF-8 bytes after trimming.
+- `vcpu`: optional, defaults to 1, accepted range 1–64.
+- `memory_mib`: optional, defaults to 1024 MiB, accepted range 256–262144.
+- `image_ref`: optional catalog-style identifier, up to 128 characters.
+
+Migration `0004_instance_compute_spec.sql` adds the persisted fields and
+database constraints. The existing RBAC-protected `GET /v1/instances` and
+`POST /v1/instances` routes expose this metadata. The optional image reference
+is not resolved against an image catalog yet.
+
+Example request:
+
+```json
+{
+  "name": "my-server",
+  "vcpu": 2,
+  "memory_mib": 2048,
+  "image_ref": "ubuntu/24.04"
+}
+```
+
+The API validates and stores a desired configuration only. It does not reserve
+capacity, select a node, download an image, create a disk, configure a network,
+or start a virtual machine.
