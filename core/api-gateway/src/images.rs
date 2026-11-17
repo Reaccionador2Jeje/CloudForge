@@ -154,7 +154,8 @@ mod tests {
     fn accepts_valid_image_metadata() {
         let image = validate_image(request()).unwrap();
         assert_eq!(image.slug, "ubuntu/24.04");
-        assert_eq!(image.status, "draft");
+        assert_eq!(image.architecture, "x86_64");
+        assert_eq!(image.checksum_sha256, Some("a".repeat(64)));
     }
 
     #[test]
