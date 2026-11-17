@@ -36,11 +36,31 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, code, message) = match self {
             Self::Validation(message) => (StatusCode::BAD_REQUEST, "validation_error", message),
-            Self::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized", "A valid bearer session is required".to_owned()),
-            Self::Forbidden => (StatusCode::FORBIDDEN, "forbidden", "The account lacks the required permission".to_owned()),
-            Self::BootstrapDisabled => (StatusCode::SERVICE_UNAVAILABLE, "bootstrap_disabled", "Administrator bootstrap is not configured".to_owned()),
-            Self::BootstrapAlreadyCompleted => (StatusCode::CONFLICT, "bootstrap_completed", "The initial administrator has already been created".to_owned()),
-            Self::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error", "An internal service error occurred".to_owned()),
+            Self::Unauthorized => (
+                StatusCode::UNAUTHORIZED,
+                "unauthorized",
+                "A valid bearer session is required".to_owned(),
+            ),
+            Self::Forbidden => (
+                StatusCode::FORBIDDEN,
+                "forbidden",
+                "The account lacks the required permission".to_owned(),
+            ),
+            Self::BootstrapDisabled => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                "bootstrap_disabled",
+                "Administrator bootstrap is not configured".to_owned(),
+            ),
+            Self::BootstrapAlreadyCompleted => (
+                StatusCode::CONFLICT,
+                "bootstrap_completed",
+                "The initial administrator has already been created".to_owned(),
+            ),
+            Self::Internal => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal_error",
+                "An internal service error occurred".to_owned(),
+            ),
             Self::DatabaseNotConfigured => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 "database_not_configured",
