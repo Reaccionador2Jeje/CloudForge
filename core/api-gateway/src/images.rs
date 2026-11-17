@@ -51,47 +51,86 @@ fn validate_image(request: CreateImageRequest) -> Result<CreateImageRequest, Api
     let os_version = request.os_version.trim();
     let architecture = request.architecture.trim();
     let disk_format = request.disk_format.trim().to_ascii_lowercase();
-    let artifact_type = request.artifact_type.as_deref().map(str::trim).map(str::to_ascii_lowercase)
-        .unwrap_or_else(|| if disk_format == "iso" { "installer_iso".to_owned() } else { "disk_image".to_owned() });
+    let artifact_type = request
+        .artifact_type
+        .as_deref()
+        .map(str::trim)
+        .map(str::to_ascii_lowercase)
+        .unwrap_or_else(|| {
+            if disk_format == "iso" {
+                "installer_iso".to_owned()
+            } else {
+                "disk_image".to_owned()
+            }
+        });
 
     if !validate_token(slug, 96, "._/-")
-        || !slug.chars().next().is_some_and(|c| c.is_ascii_alphanumeric())
+        || !slug
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphanumeric())
     {
-        return Err(ApiError::Validation("slug must be a catalog identifier of at most 96 characters".to_owned()));
+        return Err(ApiError::Validation(
+            "slug must be a catalog identifier of at most 96 characters".to_owned(),
+        ));
     }
     if name.is_empty() || name.len() > 120 {
-        return Err(ApiError::Validation("name must contain between 1 and 120 bytes".to_owned()));
+        return Err(ApiError::Validation(
+            "name must contain between 1 and 120 bytes".to_owned(),
+        ));
     }
     if !validate_token(&os_family, 32, "-") {
-        return Err(ApiError::Validation("os_family must be a lowercase alphanumeric identifier".to_owned()));
+        return Err(ApiError::Validation(
+            "os_family must be a lowercase alphanumeric identifier".to_owned(),
+        ));
     }
     if !validate_token(os_version, 32, ".-_+") {
-        return Err(ApiError::Validation("os_version contains unsupported characters".to_owned()));
+        return Err(ApiError::Validation(
+            "os_version contains unsupported characters".to_owned(),
+        ));
     }
     if !matches!(architecture, "x86_64" | "aarch64") {
-        return Err(ApiError::Validation("architecture must be x86_64 or aarch64".to_owned()));
+        return Err(ApiError::Validation(
+            "architecture must be x86_64 or aarch64".to_owned(),
+        ));
     }
     if !matches!(disk_format.as_str(), "qcow2" | "raw" | "iso") {
-        return Err(ApiError::Validation("disk_format must be qcow2, raw, or iso".to_owned()));
+        return Err(ApiError::Validation(
+            "disk_format must be qcow2, raw, or iso".to_owned(),
+        ));
     }
     if !matches!(artifact_type.as_str(), "disk_image" | "installer_iso")
         || (disk_format == "iso") != (artifact_type == "installer_iso")
     {
-        return Err(ApiError::Validation("installer_iso artifacts must use ISO format; disk_image artifacts must use qcow2 or raw".to_owned()));
+        return Err(ApiError::Validation(
+            "installer_iso artifacts must use ISO format; disk_image artifacts must use qcow2 or raw".to_owned(),
+        ));
     }
 
-    let source_url = request.source_url.as_deref().map(str::trim).filter(|v| !v.is_empty());
+    let source_url = request
+        .source_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
     if source_url.is_some_and(|url| {
         url.len() > 2048 || !url.starts_with("https://") || url.chars().any(char::is_whitespace)
     }) {
-        return Err(ApiError::Validation("source_url must be an HTTPS URL without whitespace".to_owned()));
+        return Err(ApiError::Validation(
+            "source_url must be an HTTPS URL without whitespace".to_owned(),
+        ));
     }
 
-    let checksum = request.checksum_sha256.as_deref().map(str::trim).filter(|v| !v.is_empty());
-    if checksum.is_some_and(|value| {
-        value.len() != 64 || !value.chars().all(|c| c.is_ascii_hexdigit())
-    }) {
-        return Err(ApiError::Validation("checksum_sha256 must contain exactly 64 hexadecimal characters".to_owned()));
+    let checksum = request
+        .checksum_sha256
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+    if checksum
+        .is_some_and(|value| value.len() != 64 || !value.chars().all(|c| c.is_ascii_hexdigit()))
+    {
+        return Err(ApiError::Validation(
+            "checksum_sha256 must contain exactly 64 hexadecimal characters".to_owned(),
+        ));
     }
 
     Ok(CreateImageRequest {
