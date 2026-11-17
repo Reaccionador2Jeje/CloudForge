@@ -68,32 +68,19 @@ The current API Gateway is a development foundation. It does not yet provision v
 
 ## Development
 
-Start the local PostgreSQL dependency (optional for health endpoints, required for instance persistence):
+Requirements:
+
+- Rust stable toolchain
+- Cargo
+- Docker Compose (for local PostgreSQL)
+
+Start PostgreSQL:
 
 ```bash
 docker compose up -d postgres
 ```
 
-Copy `.env.example` to `.env`, then start the API:
-
-```bash
-cargo run -p cloudforge-api-gateway
-```
-
-When `DATABASE_URL` is configured, the gateway applies SQL migrations at startup. The local Compose password is for development only; never expose this database or reuse that password in production.
-
-### Initial instance registry API
-
-- `GET /v1/instances` — list registered instance records.
-- `POST /v1/instances` — create a pending registry record using JSON: `{"name":"my-server"}`.
-
-These endpoints manage database records only. They do **not** create or start virtual machines yet. Real provisioning will be introduced after the identity, authorization, and node-agent boundaries are designed.
-
-
-Requirements:
-
-- Rust stable toolchain
-- Cargo
+Copy `.env.example` to `.env` and adjust it if necessary. The supplied database password is for local development only.
 
 Run the API Gateway:
 
@@ -101,7 +88,7 @@ Run the API Gateway:
 cargo run -p cloudforge-api-gateway
 ```
 
-By default, it listens on `127.0.0.1:8080`.
+By default, the API listens on `127.0.0.1:8080`. When `DATABASE_URL` is configured, the gateway connects to PostgreSQL and applies embedded SQL migrations at startup. Without it, health and system-information endpoints remain available, while database-backed endpoints return `503 Service Unavailable`.
 
 Configuration:
 
@@ -109,14 +96,22 @@ Configuration:
 | --- | --- | --- |
 | `CLOUDFORGE_HOST` | `127.0.0.1` | Bind address |
 | `CLOUDFORGE_PORT` | `8080` | TCP port |
+| `CLOUDFORGE_DATABASE_MAX_CONNECTIONS` | `5` | PostgreSQL connection pool limit |
+| `DATABASE_URL` | unset | Optional PostgreSQL connection string |
 | `RUST_LOG` | `info` | Logging filter |
 
-Health endpoints:
+Health and information endpoints:
 
 - `GET /health/live`
 - `GET /health/ready`
+- `GET /v1/system/info`
 
-The readiness endpoint currently checks only that the HTTP service is running. Dependency checks will be added with database and internal-service integration.
+Initial instance registry endpoints (PostgreSQL required):
+
+- `GET /v1/instances` — list registered instance records.
+- `POST /v1/instances` — create a pending registry record using JSON: `{"name":"my-server"}`.
+
+The instance registry stores metadata only. It does **not** create or start virtual machines. Actual provisioning will be implemented after identity, authorization, and node-agent boundaries are in place.
 
 Run quality checks:
 
