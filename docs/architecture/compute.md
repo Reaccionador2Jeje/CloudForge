@@ -169,9 +169,13 @@ cloudforge-node-agent --compute-preflight
 
 It checks that the host is Linux, that `/dev/kvm` exists, that
 `qemu-system-x86_64` and `virsh` are available, and that the local
-`qemu:///system` libvirt connection responds. When libvirt is reachable, it
-also reads the names of defined domains. The command emits a JSON report and
-returns exit code 2 when any prerequisite is missing.
+`qemu:///system` libvirt connection responds. When libvirt is reachable, it reads each defined domain's UUID, name, and
+current libvirt state (`running`, `shut off`, and so on). The inventory is
+collected through fixed `virsh list --all --uuid`, `domname`, and `domstate`
+queries. UUID values are validated before use as process arguments. The command emits a versioned JSON report (schema version 2), including a
+`domain_inventory_available` flag and a `domains` array containing `uuid`,
+`name`, and `state`. It returns exit code 2 when any prerequisite or the
+read-only domain inventory is unavailable.
 
 This is an initial host-side adapter, not a provisioner. It invokes only
 fixed, read-only commands without a shell and accepts no user-provided command
