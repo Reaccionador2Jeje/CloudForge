@@ -96,7 +96,6 @@ pub async fn get_installation(
     Path(id): Path<Uuid>,
 ) -> Result<Json<InstallationJob>, ApiError> {
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
-    let mut transaction = pool.begin().await?;
     let job = sqlx::query_as::<_, InstallationJob>(
         "SELECT id, instance_id, profile_id, installer_image_id, status,
                 execution_enabled, blockers, created_by, created_at, updated_at
@@ -164,6 +163,7 @@ pub async fn create_installation(
     }
 
     let blockers = installation_blockers(&image);
+    let mut transaction = pool.begin().await?;
     let job = sqlx::query_as::<_, InstallationJob>(
         "INSERT INTO installation_jobs
             (instance_id, profile_id, installer_image_id, blockers, created_by)
