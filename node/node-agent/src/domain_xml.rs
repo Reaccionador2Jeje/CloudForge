@@ -22,7 +22,8 @@ impl DomainSpec {
     pub fn validate(&self) -> Result<(), DomainSpecError> {
         if self.name.is_empty()
             || self.name.len() > 63
-            || !self.name
+            || !self
+                .name
                 .bytes()
                 .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
             || !self.name.as_bytes()[0].is_ascii_lowercase()
@@ -45,13 +46,11 @@ impl DomainSpec {
             || relative == "."
             || relative == ".."
             || !relative.ends_with(".qcow2")
-            || !relative
-                .bytes()
-                .all(|byte| {
-                    byte.is_ascii_lowercase()
-                        || byte.is_ascii_digit()
-                        || matches!(byte, b'-' | b'_' | b'.')
-                })
+            || !relative.bytes().all(|byte| {
+                byte.is_ascii_lowercase()
+                    || byte.is_ascii_digit()
+                    || matches!(byte, b'-' | b'_' | b'.')
+            })
         {
             return Err(DomainSpecError::InvalidDiskPath);
         }
@@ -157,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn xml_values_are_escaped() {
+    fn rejects_xml_metacharacters_in_domain_names() {
         let mut spec = valid_spec();
         spec.name = "vm&safe".to_owned();
         assert_eq!(spec.validate(), Err(DomainSpecError::InvalidName));
