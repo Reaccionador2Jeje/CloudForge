@@ -200,3 +200,20 @@ preflight is local-only and must not be interpreted as a registered or trusted
 compute node. VM lifecycle operations remain disabled until node mTLS,
 enrollment, tenant ownership, scheduler reservations, managed storage, and
 network isolation are implemented and tested.
+
+## Typed libvirt domain definition builder
+
+The Node Agent exposes a validation-only XML renderer:
+
+```bash
+cloudforge-node-agent --render-domain-xml <name> <vcpu> <memory-mib> <disk-path>
+```
+
+It validates a conservative domain name, CPU and memory bounds, and a single
+QCOW2 filename directly inside
+`/var/lib/cloudforge/pools/default/`. It renders a Q35 x86_64 KVM domain
+definition with a VirtIO-SCSI controller. The command prints XML only; it
+does not create the disk, call `virsh define`, start QEMU, or modify libvirt.
+The managed disk pool must be provisioned separately by a future storage
+provider. This renderer is a tested definition-building primitive, not a
+production-ready VM provisioner.
