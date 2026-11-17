@@ -63,7 +63,10 @@ mod tests {
     #[test]
     fn qemu_provider_is_not_advertised_as_available() {
         let providers = provider_catalog();
-        let qemu = providers.iter().find(|provider| provider.id == "qemu-kvm").unwrap();
+        let qemu = providers
+            .iter()
+            .find(|provider| provider.id == "qemu-kvm")
+            .unwrap();
         assert_eq!(qemu.state, ProviderState::Planned);
     }
 
