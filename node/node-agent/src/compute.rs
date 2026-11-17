@@ -100,9 +100,7 @@ pub fn collect_preflight() -> ComputePreflight {
     if !libvirt_system_connection {
         blockers.push("libvirt_system_connection_unavailable");
     }
-    if libvirt_system_connection
-        && !domain_inventory_available
-    {
+    if libvirt_system_connection && !domain_inventory_available {
         blockers.push("libvirt_domain_inventory_failed");
     }
 
