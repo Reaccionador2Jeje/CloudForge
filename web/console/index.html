@@ -24,7 +24,7 @@
   <main>
     <header class="top">
       <div><div class="eyebrow">Control plane / Secure API proxy</div><h1 id="page-title">Resumen</h1><div class="muted">Panel de control de tu infraestructura CloudForge.</div></div>
-      <div class="status"><span id="api-dot" class="dot"></span><span id="api-label">Conectando con API…</span><button id="logout-button" hidden>Cerrar sesión</button></div>
+      <div class="status"><span id="network-label" class="pill">Internet: verificando…</span><span id="api-dot" class="dot"></span><span id="api-label">Conectando con API…</span><button id="logout-button" hidden>Cerrar sesión</button></div>
     </header>
 
     <section class="split" id="auth-panel" aria-label="Autenticación local">
@@ -155,6 +155,7 @@ let accessToken=null;
 const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(accessToken?{Authorization:'Bearer '+accessToken}:{}),...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
 function toast(message){const el=$('toast');el.textContent=message;el.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display='none',3200)}
 function setApi(ok,label){$('api-dot').className='dot '+(ok?'ok':'bad');$('api-label').textContent=label;$('metric-api').textContent=ok?'Online':'Offline';}
+function setNetwork(label,online){const el=$('network-label');if(!el)return;el.textContent=label;el.className='pill '+(online?'ok':'warn');}
 function showPage(page){document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('page-title').textContent=({overview:'Resumen',instances:'Instancias',nodes:'Nodos',storage:'Almacenamiento',compute:'Compute',images:'Imágenes',installations:'Instalaciones',diagnostics:'Diagnóstico',components:'Componentes'})[page];if(page==='instances')loadInstances();if(page==='nodes')loadNodes();if(page==='storage')loadStorage();if(page==='components')loadComponents();if(page==='compute')loadCompute();if(page==='images')loadImages();if(page==='installations')loadInstallations()}
 document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.page)));
 
@@ -198,6 +199,7 @@ $('logout-button').addEventListener('click',async()=>{
 });
 async function loadOverview(){
   if(!navigator.onLine){
+   setNetwork('Internet: desconectada',false);
    setApi(false,'Sin conexión a Internet');
    $('connection-banner').hidden=false;
    $('connection-banner').textContent='Este dispositivo no tiene conexión a Internet. Comprueba Wi-Fi o datos móviles.';
@@ -207,6 +209,7 @@ async function loadOverview(){
   }
   try{
    const [live,ready,info]=await Promise.all([api('/health/live'),api('/health/ready'),api('/v1/system/info')]);
+   setNetwork('Internet: conectada',true);
    setApi(true,'API Gateway online');$('connection-banner').hidden=true;
    $('metric-db').textContent=ready.database==='connected'?'Online':ready.database==='not_configured'?'Sin configurar':'Error';
    $('service-rows').innerHTML='';
@@ -224,11 +227,13 @@ async function loadOverview(){
    try{
     const response=await fetch('/health/connectivity',{cache:'no-store'});
     const status=await response.json();
+    setNetwork('Internet: conectada',true);
     if(!navigator.onLine) detail='Sin conexión a Internet en este dispositivo.';
     else if(!status.api_origin_configured) detail='Internet disponible. Falta configurar CLOUDFORGE_API_ORIGIN en el Worker de Cloudflare.';
     else if(!status.cloudflare_access_configured) detail='Internet disponible. Falta configurar CF_ACCESS_CLIENT_ID y CF_ACCESS_CLIENT_SECRET como secretos del Worker.';
     else if(status.backend_proxy_ready) detail='Internet y proxy configurados, pero el API Gateway de origen no responde. Revisa el host, puerto, firewall y Cloudflare Access.';
    }catch{
+    setNetwork(navigator.onLine?'Internet: no verificada':'Internet: desconectada',false);
     if(!navigator.onLine)detail='Sin conexión a Internet en este dispositivo.';
     else detail='El sitio responde, pero no se pudo consultar el estado del proxy CloudForge.';
    }
@@ -237,8 +242,8 @@ async function loadOverview(){
    $('service-rows').innerHTML='<div class="empty">'+escapeHtml(detail)+'</div>';
   }
 }
-window.addEventListener('online',()=>{toast('Conexión a Internet detectada');loadOverview()});
-window.addEventListener('offline',()=>{setApi(false,'Sin conexión a Internet');$('connection-banner').hidden=false;$('connection-banner').textContent='Este dispositivo perdió la conexión a Internet.'});
+window.addEventListener('online',()=>{setNetwork('Internet: comprobando…',false);toast('Conexión a Internet detectada');loadOverview()});
+window.addEventListener('offline',()=>{setNetwork('Internet: desconectada',false);setApi(false,'Sin conexión a Internet');$('connection-banner').hidden=false;$('connection-banner').textContent='Este dispositivo perdió la conexión a Internet.'});
 
 
 function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -409,7 +414,7 @@ $('refresh-compute').addEventListener('click',loadCompute);$('refresh-images').a
 
 async function diagnostics(){
   const target=$('diagnostic-rows');target.innerHTML='';
-  for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes','/v1/storage/quota','/v1/storage/reservations','/v1/storage/volumes']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
+  for(const path of ['/health/connectivity','/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes','/v1/storage/quota','/v1/storage/reservations','/v1/storage/volumes']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
 
 $('refresh-overview').addEventListener('click',loadOverview);$('refresh-instances').addEventListener('click',loadInstances);$('refresh-nodes').addEventListener('click',loadNodes);$('run-diagnostics').addEventListener('click',diagnostics);loadOverview();
 </script>
