@@ -1,7 +1,5 @@
 use serde::Serialize;
-use std::{
-    process::{Command, Output},
-};
+use std::process::{Command, Output};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct LibvirtDomain {
@@ -20,7 +18,6 @@ pub struct ComputePreflight {
     pub domains: Vec<LibvirtDomain>,
     pub blockers: Vec<&'static str>,
 }
-
 
 #[cfg(target_os = "linux")]
 fn is_kvm_character_device() -> bool {
@@ -65,8 +62,8 @@ pub fn collect_preflight() -> ComputePreflight {
     let qemu_binary_available =
         supported_host && command_succeeds("qemu-system-x86_64", &["--version"]);
     let libvirt_cli_available = supported_host && command_succeeds("virsh", &["--version"]);
-    let libvirt_system_connection = libvirt_cli_available
-        && command_succeeds("virsh", &["-c", "qemu:///system", "version"]);
+    let libvirt_system_connection =
+        libvirt_cli_available && command_succeeds("virsh", &["-c", "qemu:///system", "version"]);
 
     let domain_output = if libvirt_system_connection {
         command_output(
@@ -103,7 +100,9 @@ pub fn collect_preflight() -> ComputePreflight {
     if !libvirt_system_connection {
         blockers.push("libvirt_system_connection_unavailable");
     }
-    if libvirt_system_connection && !domain_inventory_available {
+    if libvirt_system_connection
+        && !domain_inventory_available
+    {
         blockers.push("libvirt_domain_inventory_failed");
     }
 
