@@ -24,6 +24,19 @@ pub struct CreateInstanceRequest {
     pub name: String,
 }
 
+fn validate_instance_name(name: &str) -> Result<&str, ApiError> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(ApiError::Validation("name cannot be empty".to_owned()));
+    }
+    if name.len() > 63 {
+        return Err(ApiError::Validation(
+            "name cannot exceed 63 UTF-8 bytes".to_owned(),
+        ));
+    }
+    Ok(name)
+}
+
 pub async fn list_instances(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<Instance>>, ApiError> {
@@ -41,16 +54,7 @@ pub async fn create_instance(
     State(state): State<AppState>,
     Json(request): Json<CreateInstanceRequest>,
 ) -> Result<(StatusCode, Json<Instance>), ApiError> {
-    let name = request.name.trim();
-    if name.is_empty() {
-        return Err(ApiError::Validation("name cannot be empty".to_owned()));
-    }
-    if name.len() > 63 {
-        return Err(ApiError::Validation(
-            "name cannot exceed 63 UTF-8 bytes".to_owned(),
-        ));
-    }
-
+    let name = validate_instance_name(&request.name)?;
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let instance = sqlx::query_as::<_, Instance>(
         "INSERT INTO instances (name) VALUES ($1) RETURNING id, name, status, created_at",
@@ -67,13 +71,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn instance_name_is_trimmed_before_storage() {
-        let name = "  test-node  ".trim();
-        assert_eq!(name, "test-node");
+    fn trims_instance_names() {
+        assert_eq!(validate_instance_name("  test-node  ").unwrap(), "test-node");
     }
 
     #[test]
-    fn empty_instance_name_is_detectable() {
-        assert!("   ".trim().is_empty());
+    fn rejects_empty_instance_names() {
+        assert!(validate_instance_name("   ").is_err());
+    }
+
+    #[test]
+    fn rejects_names_longer_than_63_bytes() {
+        assert!(validate_instance_name(&"a".repeat(64)).is_err());
+    }
+
+    #[test]
+    fn accepts_63_byte_names() {
+        assert!(validate_instance_name(&"a".repeat(63)).is_ok());
     }
 }
