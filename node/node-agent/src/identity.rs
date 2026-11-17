@@ -76,8 +76,9 @@ impl IdentityConfig {
         IdentitySummary {
             node_id: self.node_id,
             control_plane_url: self.control_plane_url.clone(),
-            authentication: "mutual_tls",
-            credentials_validated: true,
+            authentication: "not_established",
+            credential_files_preflight_passed: true,
+            tls_session_established: false,
         }
     }
 }
@@ -86,8 +87,10 @@ impl IdentityConfig {
 pub struct IdentitySummary {
     pub node_id: Uuid,
     pub control_plane_url: String,
+    /// A preflight result is not proof that a TLS connection was established.
     pub authentication: &'static str,
-    pub credentials_validated: bool,
+    pub credential_files_preflight_passed: bool,
+    pub tls_session_established: bool,
 }
 
 fn required(name: &'static str) -> Result<String, IdentityConfigError> {
