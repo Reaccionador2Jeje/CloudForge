@@ -1,6 +1,5 @@
 use serde::Serialize;
 use std::{
-    path::Path,
     process::{Command, Output},
 };
 
@@ -20,6 +19,20 @@ pub struct ComputePreflight {
     pub provider_ready: bool,
     pub domains: Vec<LibvirtDomain>,
     pub blockers: Vec<&'static str>,
+}
+
+
+#[cfg(target_os = "linux")]
+fn is_kvm_character_device() -> bool {
+    use std::os::unix::fs::FileTypeExt;
+    std::fs::metadata("/dev/kvm")
+        .map(|metadata| metadata.file_type().is_char_device())
+        .unwrap_or(false)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn is_kvm_character_device() -> bool {
+    false
 }
 
 fn command_succeeds(program: &str, args: &[&str]) -> bool {
@@ -48,7 +61,7 @@ fn parse_domains(output: &str) -> Vec<LibvirtDomain> {
 /// No VM lifecycle or host configuration commands are executed.
 pub fn collect_preflight() -> ComputePreflight {
     let supported_host = cfg!(target_os = "linux");
-    let kvm_device_available = supported_host && Path::new("/dev/kvm").exists();
+    let kvm_device_available = supported_host && is_kvm_character_device();
     let qemu_binary_available =
         supported_host && command_succeeds("qemu-system-x86_64", &["--version"]);
     let libvirt_cli_available = supported_host && command_succeeds("virsh", &["--version"]);
