@@ -1,5 +1,6 @@
 mod compute;
 pub mod domain_xml;
+pub mod storage;
 mod identity;
 mod inventory;
 
