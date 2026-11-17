@@ -72,10 +72,10 @@ fn validate_compute_spec(
 
     if let Some(reference) = image_ref.as_deref() {
         if reference.len() > 128
-            || !reference
-                .chars()
-                .all(|character| character.is_ascii_alphanumeric()
-                    || matches!(character, '.' | '_' | ':' | '/' | '-'))
+            || !reference.chars().all(|character| {
+                character.is_ascii_alphanumeric()
+                    || matches!(character, '.' | '_' | ':' | '/' | '-')
+            })
             || !reference
                 .chars()
                 .next()
@@ -110,8 +110,11 @@ pub async fn create_instance(
     Json(request): Json<CreateInstanceRequest>,
 ) -> Result<(StatusCode, Json<Instance>), ApiError> {
     let name = validate_instance_name(&request.name)?;
-    let (vcpu, memory_mib, image_ref) =
-        validate_compute_spec(request.vcpu, request.memory_mib, request.image_ref.as_deref())?;
+    let (vcpu, memory_mib, image_ref) = validate_compute_spec(
+        request.vcpu,
+        request.memory_mib,
+        request.image_ref.as_deref(),
+    )?;
     let pool = state.pool.as_ref().ok_or(ApiError::DatabaseNotConfigured)?;
     let instance = sqlx::query_as::<_, Instance>(
         "INSERT INTO instances (name, vcpu, memory_mib, image_ref)
