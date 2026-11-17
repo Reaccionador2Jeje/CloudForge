@@ -1,8 +1,8 @@
 mod compute;
 pub mod domain_xml;
-pub mod provisioning;
 mod identity;
 mod inventory;
+pub mod provisioning;
 pub mod storage;
 
 use std::env;
