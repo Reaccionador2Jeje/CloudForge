@@ -11,8 +11,8 @@ pub struct ComponentStatus {
 }
 
 /// Informational inventory of delivered foundations and future integrations.
-pub async fn list_components() -> Json<Vec<ComponentStatus>> {
-    Json(vec![
+fn component_catalog() -> Vec<ComponentStatus> {
+    vec![
         ComponentStatus { id: "api-gateway", name: "API Gateway", state: "available", scope: "control-plane", description: "Axum HTTP API with health, system, instance, and node read endpoints." },
         ComponentStatus { id: "postgresql", name: "PostgreSQL", state: "optional", scope: "control-plane", description: "Persistent metadata when DATABASE_URL is configured." },
         ComponentStatus { id: "web-console", name: "Web Console", state: "available", scope: "client", description: "Responsive local console and static public demo." },
@@ -54,5 +54,50 @@ pub async fn list_components() -> Json<Vec<ComponentStatus>> {
         ComponentStatus { id: "mobile-client", name: "Mobile Client", state: "planned", scope: "client", description: "Cross-platform Flutter management client." },
         ComponentStatus { id: "cli", name: "Command-Line Client", state: "planned", scope: "client", description: "Scriptable operator CLI with secure credential handling." },
         ComponentStatus { id: "plugin-system", name: "Provider Plugin System", state: "planned", scope: "extensibility", description: "Stable provider interfaces, capability negotiation, and compatibility checks." },
-    ])
+    ]
+}
+
+pub async fn list_components() -> Json<Vec<ComponentStatus>> {
+    Json(component_catalog())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::component_catalog;
+    use std::collections::HashSet;
+
+    #[test]
+    fn component_ids_are_unique() {
+        let components = component_catalog();
+        let ids: HashSet<_> = components.iter().map(|component| component.id).collect();
+        assert_eq!(ids.len(), components.len());
+    }
+
+    #[test]
+    fn catalog_covers_the_platform_roadmap() {
+        let components = component_catalog();
+        assert!(components.len() >= 40);
+        for required in [
+            "rbac",
+            "audit-service",
+            "compute-qemu",
+            "containers",
+            "storage",
+            "networking",
+            "scheduler",
+            "metrics",
+        ] {
+            assert!(components.iter().any(|component| component.id == required));
+        }
+    }
+
+    #[test]
+    fn component_states_use_known_values() {
+        for component in component_catalog() {
+            assert!(matches!(
+                component.state,
+                "available" | "optional" | "local-only" | "preflight-only" | "planned"
+            ));
+        }
+    }
 }
