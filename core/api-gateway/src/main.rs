@@ -4,7 +4,7 @@ mod instances;
 
 use std::net::SocketAddr;
 
-use axum::{routing::get, Json, Router};
+use axum::{response::Html, routing::get, Json, Router};
 use config::AppConfig;
 use instances::{create_instance, list_instances, AppState};
 use serde::Serialize;
@@ -67,6 +67,10 @@ struct SystemInfo {
     stage: &'static str,
 }
 
+async fn web_console() -> Html<&'static str> {
+    Html(include_str!("../../../web/console/index.html"))
+}
+
 async fn system_info() -> Json<SystemInfo> {
     Json(SystemInfo {
         name: "CloudForge",
@@ -104,6 +108,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state = AppState { pool };
     let app = Router::new()
+        .route("/", get(web_console))
+        .route("/console", get(web_console))
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/v1/system/info", get(system_info))
