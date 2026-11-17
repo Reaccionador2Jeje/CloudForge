@@ -130,7 +130,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         state: state.clone(),
         resource: "nodes",
     };
-    let app = Router::new()
+    let app =
+        Router::new()
         .route("/", get(web_console))
         .route("/console", get(web_console))
         .route("/styles.css", get(web_styles))
