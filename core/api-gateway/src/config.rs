@@ -10,15 +10,13 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn from_env() -> Result<Self, String> {
-        let host = env::var("CLOUDFORGE_HOST")
-            .unwrap_or_else(|_| "127.0.0.1".to_owned());
+        let host = env::var("CLOUDFORGE_HOST").unwrap_or_else(|_| "127.0.0.1".to_owned());
         if host.trim().is_empty() {
             return Err("CLOUDFORGE_HOST cannot be empty".to_owned());
         }
 
         let port = parse_env("CLOUDFORGE_PORT", 8080_u16)?;
-        let database_max_connections =
-            parse_env("CLOUDFORGE_DATABASE_MAX_CONNECTIONS", 5_u32)?;
+        let database_max_connections = parse_env("CLOUDFORGE_DATABASE_MAX_CONNECTIONS", 5_u32)?;
         if database_max_connections == 0 {
             return Err("CLOUDFORGE_DATABASE_MAX_CONNECTIONS must be greater than zero".to_owned());
         }
