@@ -340,6 +340,27 @@ pub async fn create_volume(
     .await?
     .ok_or_else(|| ApiError::NotFound("active storage reservation was not found".to_owned()))?;
 
+    if reservation.status == "consumed" {
+        let existing = sqlx::query_as::<_, StorageVolume>(
+            "SELECT id, reservation_id, name, size_gib, format, status, created_at, updated_at
+             FROM storage_volumes WHERE reservation_id = $1 AND user_id = $2",
+        )
+        .bind(reservation.id)
+        .bind(user.id)
+        .fetch_optional(&mut *transaction)
+        .await?;
+
+        if let Some(existing) = existing {
+            if existing.name == name && existing.format == request.format {
+                transaction.commit().await?;
+                return Ok((StatusCode::OK, Json(existing)));
+            }
+            return Err(ApiError::Conflict(
+                "This reservation has already been used to create a different volume".to_owned(),
+            ));
+        }
+    }
+
     if reservation.status != "reserved" || reservation.expires_at <= Utc::now() {
         return Err(ApiError::Conflict("Storage reservation is no longer active".to_owned()));
     }
