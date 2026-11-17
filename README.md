@@ -46,20 +46,20 @@ docs/
 
 ## Current status
 
-**Milestone 0.5 — Web Console Preview**
+**Milestone 1.1 — Protected Cloudflare API proxy foundation**
 
 - [x] Rust workspace and Axum API Gateway
-- [x] Health and system information endpoints
-- [x] Optional PostgreSQL integration and instance metadata registry
-- [x] Read-only Node Agent host inventory
-- [x] Node identity configuration preflight (not remote authentication)
-- [x] Responsive browser console served by the API Gateway
-- [x] Overview, instance metadata, node readiness information, and API diagnostics
-- [x] Local user authentication and role-based authorization (development-only; production hardening pending)
-- [ ] Cryptographic mTLS enrollment and authenticated heartbeats
-- [ ] QEMU/KVM lifecycle management
+- [x] Optional PostgreSQL integration and instance/node metadata registries
+- [x] Read-only local Node Agent inventory and identity preflight
+- [x] Local user bootstrap, Argon2id login, bearer sessions, RBAC, and audit events
+- [x] Cloudflare Worker entry point with allowlisted API proxy routes
+- [x] HTTPS-only upstream validation and Cloudflare Access Service Token enforcement
+- [x] Public console no longer fabricates sample infrastructure data
+- [ ] Deploy and protect a real API Gateway origin behind Cloudflare Tunnel and Access
+- [ ] Production authentication hardening and security review
+- [ ] QEMU/KVM, containerd, storage, networking, and node mTLS
 
-CloudForge remains a development project. The web console can be deployed publicly as a static Cloudflare Worker in explicit demo mode; it does not connect to the Rust API Gateway, provision virtual machines, or enroll infrastructure nodes.
+The Cloudflare Worker and console code are prepared for a protected API connection. The real Rust API Gateway and PostgreSQL still need to be hosted on a Linux server and connected through Cloudflare Tunnel and Access. Until that is configured, the public console reports the API as unavailable instead of displaying simulated data.
 
 ## Development
 
@@ -182,7 +182,7 @@ CloudForge now includes a responsive development console served directly by the 
 
 The console is a static HTML/CSS/JavaScript application embedded into the gateway binary for local development. It can also be published independently as static assets on Cloudflare Workers. The public deployment uses a clearly marked demo mode: simulated sample rows only, no API requests, and no instance-creation actions.
 
-**Security:** the current API and instance metadata routes do not yet have user authentication or authorization. Keep the Rust API bound to `127.0.0.1` for local development and do not expose it to the public Internet. See [Web Console documentation](docs/web-console.md) and [Cloudflare Workers deployment](docs/deployment/cloudflare-workers.md).
+**Security:** local user authentication, bearer sessions, and RBAC are implemented as an initial development foundation. Production rate limiting, account recovery, security review, and operational hardening remain pending. Keep the Rust API bound to `127.0.0.1` behind Cloudflare Tunnel and Access; do not expose port 8080 directly to the Internet. See [Web Console documentation](docs/web-console.md) and [Cloudflare Workers deployment](docs/deployment/cloudflare-workers.md).
 
 ## Milestone 0.6 — Node Registry Foundation
 
@@ -216,9 +216,9 @@ The console now uses a dedicated responsive stylesheet at
 `web/console/styles.css`, with expanded navigation, mobile layouts, cards,
 tables, status pills, component cards, search, and state filtering.
 
-The new **Components** screen reads `GET /v1/system/components` in local mode
-and displays the same catalog as clearly simulated sample data in public demo
-mode. The API catalog now tracks the control plane, node registry, identity,
+The new **Components** screen reads `GET /v1/system/components` from the API
+Gateway. The public console no longer substitutes a simulated component
+catalog when the API is unavailable. The API catalog now tracks the control plane, node registry, identity,
 mTLS, compute, containers, scheduling, images, storage, networking,
 observability, audit, and client integrations.
 
@@ -291,3 +291,22 @@ recovery, key rotation, and a full security review are still required before
 exposing the API to untrusted networks. Keep `CLOUDFORGE_HOST=127.0.0.1`.
 Never commit the bootstrap token, passwords, bearer tokens, or a populated
 `.env` file.
+
+
+## Milestone 1.1 — Protected Cloudflare API Proxy
+
+The public Cloudflare Worker now serves the static console and routes only
+approved `/health/*` and `/v1/*` endpoints through a server-side proxy.
+The proxy validates an HTTPS upstream origin, requires a Cloudflare Access
+Service Token, restricts each endpoint to its intended HTTP methods, and
+returns an explicit unavailable response when the backend or credentials are
+not configured.
+
+The browser no longer contains a public demo switch or simulated instance
+rows. It queries the real API contract and shows an unavailable state until
+the protected backend is connected.
+
+The Worker still does not host the Rust API or database. Deployment requires
+a Linux API host, private PostgreSQL, Cloudflare Tunnel, an Access application
+with a Service Auth policy, and Worker configuration values/secrets. See
+[Cloudflare Workers deployment](docs/deployment/cloudflare-workers.md).
