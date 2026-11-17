@@ -1,7 +1,7 @@
 [package]
 name = "cloudforge-node-agent"
 version = "0.4.0"
-description = "Read-only host inventory agent for CloudForge"
+description = "Read-only host and QEMU/libvirt inventory agent for CloudForge"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
