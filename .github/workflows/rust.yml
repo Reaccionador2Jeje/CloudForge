@@ -24,6 +24,26 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Install Node.js for console checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check console assets and JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path("web/console/index.html").read_text(encoding="utf-8")
+          css = Path("web/console/styles.css")
+          assert css.is_file(), "console stylesheet is missing"
+          assert 'href="/styles.css"' in html, "console stylesheet link is missing"
+          scripts = re.findall(r"<script>(.*?)</script>", html, flags=re.DOTALL)
+          assert scripts, "no inline console script found"
+          Path("/tmp/cloudforge-console.js").write_text("\\n".join(scripts), encoding="utf-8")
+          PY
+          node --check /tmp/cloudforge-console.js
 
       - name: Check formatting
         run: cargo fmt --all -- --check
