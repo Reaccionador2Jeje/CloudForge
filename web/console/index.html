@@ -15,7 +15,7 @@
     <nav class="nav" aria-label="Navegación principal">
       <button class="active" data-page="overview"><span class="nav-icon">◈</span>Resumen</button>
       <button data-page="instances"><span class="nav-icon">▦</span>Instancias</button>
-      <button data-page="nodes"><span class="nav-icon">⌘</span>Nodos</button><button data-page="compute">◉ Compute</button><button data-page="images">▧ Imágenes</button><button data-page="installations">⇧ Instalaciones</button>
+      <button data-page="nodes"><span class="nav-icon">⌘</span>Nodos</button><button data-page="storage">▤ Almacenamiento</button><button data-page="compute">◉ Compute</button><button data-page="images">▧ Imágenes</button><button data-page="installations">⇧ Instalaciones</button>
       <button data-page="diagnostics"><span class="nav-icon">⌁</span>Diagnóstico</button>
     </nav>
     <div class="side-divider"></div><div class="side-caption">Plataforma</div><nav class="nav" aria-label="Componentes"><button data-page="components"><span class="nav-icon">◫</span>Componentes</button></nav>
@@ -82,6 +82,29 @@
       <article class="card" style="margin-top:14px"><div class="section"><h2>Nodos registrados</h2><button id="refresh-nodes">Actualizar lista</button></div><p class="muted">Consulta de solo lectura al registro local del Control Plane. No permite enrolar, activar ni revocar nodos.</p><div class="table-wrap"><table><thead><tr><th>Nombre</th><th>ID</th><th>Estado</th><th>Agente</th><th>Última conexión</th></tr></thead><tbody id="node-table"><tr><td colspan="5" class="empty">Cargando nodos…</td></tr></tbody></table></div></article>
     </section>
 
+    <section class="panel" id="page-storage">
+      <div class="section"><h2>Almacenamiento</h2><button id="refresh-storage">Actualizar</button></div>
+      <div class="notice">Las reservas descuentan cuota disponible durante 30 minutos. Son registros de capacidad: todavía no crean discos ni archivos QCOW2 en los nodos.</div>
+      <div class="grid storage-metrics">
+        <article class="card"><div class="metric-label">Cuota total</div><div class="metric" id="storage-quota">—</div><div class="metric-sub">GiB asignados a tu cuenta</div></article>
+        <article class="card"><div class="metric-label">En uso</div><div class="metric" id="storage-used">—</div><div class="metric-sub">Volúmenes en provisioning, ready o deleting</div></article>
+        <article class="card"><div class="metric-label">Reservado</div><div class="metric" id="storage-reserved">—</div><div class="metric-sub">Reservas activas sin expirar</div></article>
+        <article class="card"><div class="metric-label">Disponible</div><div class="metric" id="storage-available">—</div><div class="metric-sub">Cuota restante estimada</div></article>
+      </div>
+      <article class="card">
+        <h3>Reservar capacidad</h3>
+        <p class="muted">La reserva vence automáticamente después de 30 minutos. Puedes liberarla antes si ya no la necesitas.</p>
+        <form class="form" id="storage-reservation-form">
+          <input id="storage-requested-gib" type="number" min="1" max="2048" step="1" value="10" required aria-label="Capacidad solicitada en GiB">
+          <button type="submit">Crear reserva</button>
+        </form>
+      </article>
+      <article class="card" style="margin-top:14px">
+        <div class="section"><h2>Historial de reservas</h2><span class="pill">Últimas 100</span></div>
+        <div class="table-wrap"><table><thead><tr><th>ID</th><th>Capacidad</th><th>Estado</th><th>Creada</th><th>Vence</th><th>Acción</th></tr></thead><tbody id="storage-reservation-table"><tr><td colspan="6" class="empty">Inicia sesión para consultar tus reservas.</td></tr></tbody></table></div>
+      </article>
+    </section>
+
     <section class="panel" id="page-compute"><div class="section"><h2>Compute providers</h2><button id="refresh-compute">Actualizar</button></div><div class="notice">Estado real del API. Los proveedores planificados no crean ni ejecutan VMs.</div><div class="grid" id="compute-grid"><article class="card empty">Consultando…</article></div><article class="card"><h2>Preflight del host</h2><p class="muted">Ejecuta localmente en el host Linux: <span class="code">cloudforge-node-agent --compute-preflight</span>. El resultado aún no se reporta al Control Plane.</p></article></section>
 <section class="panel" id="page-images"><div class="section"><h2>Catálogo de imágenes</h2><button id="refresh-images">Actualizar</button></div><p class="muted">Metadatos persistidos; no implica que el archivo esté descargado o verificado.</p><article class="card"><h3>Registrar imagen</h3><form class="form" id="image-form"><input id="image-slug" placeholder="Slug" required><input id="image-name" placeholder="Nombre" required><input id="image-family" placeholder="Familia OS" required><input id="image-version" placeholder="Versión" required><select id="image-arch"><option>x86_64</option><option>aarch64</option></select><select id="image-kind"><option value="qcow2">QCOW2</option><option value="raw">RAW</option><option value="iso">ISO instalador</option></select><input id="image-url" type="url" placeholder="URL HTTPS opcional"><input id="image-checksum" maxlength="64" placeholder="SHA-256 opcional"><button type="submit">Registrar borrador</button></form></article><div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Imagen</th><th>OS</th><th>Arquitectura</th><th>Formato</th><th>Estado</th></tr></thead><tbody id="image-table"></tbody></table></div></section>
 <section class="panel" id="page-installations"><div class="section"><h2>Planes de instalación</h2><button id="refresh-installations">Actualizar</button></div><div class="notice">Los planes se guardan en PostgreSQL. No ejecutan QEMU ni simulan progreso.</div><article class="card"><h3>Nuevo plan Windows Server</h3><form class="form" id="installation-form"><select id="installation-instance" required><option value="">Instancia existente</option></select><select id="installation-profile"><option value="windows-server-2025">Windows Server 2025</option><option value="windows-server-2022">Windows Server 2022</option></select><select id="installation-image" required><option value="">ISO del catálogo</option></select><button type="submit">Crear plan</button></form></article><div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>ID</th><th>Instancia</th><th>Perfil</th><th>Estado</th><th>Ejecución</th><th>Bloqueos</th></tr></thead><tbody id="installation-table"></tbody></table></div></section>
@@ -108,7 +131,7 @@ let accessToken=null;
 const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(accessToken?{Authorization:'Bearer '+accessToken}:{}),...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
 function toast(message){const el=$('toast');el.textContent=message;el.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display='none',3200)}
 function setApi(ok,label){$('api-dot').className='dot '+(ok?'ok':'bad');$('api-label').textContent=label;$('metric-api').textContent=ok?'Online':'Offline';}
-function showPage(page){document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('page-title').textContent=({overview:'Resumen',instances:'Instancias',nodes:'Nodos',compute:'Compute',images:'Imágenes',installations:'Instalaciones',diagnostics:'Diagnóstico',components:'Componentes'})[page];if(page==='instances')loadInstances();if(page==='nodes')loadNodes();if(page==='components')loadComponents();if(page==='compute')loadCompute();if(page==='images')loadImages();if(page==='installations')loadInstallations()}
+function showPage(page){document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('page-title').textContent=({overview:'Resumen',instances:'Instancias',nodes:'Nodos',storage:'Almacenamiento',compute:'Compute',images:'Imágenes',installations:'Instalaciones',diagnostics:'Diagnóstico',components:'Componentes'})[page];if(page==='instances')loadInstances();if(page==='nodes')loadNodes();if(page==='storage')loadStorage();if(page==='components')loadComponents();if(page==='compute')loadCompute();if(page==='images')loadImages();if(page==='installations')loadInstallations()}
 document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.page)));
 
 function acceptSession(session){
@@ -195,6 +218,50 @@ $('component-state')?.addEventListener('change',renderComponents);
 $('refresh-components')?.addEventListener('click',loadComponents);
 
 
+function storageStatusLabel(status){return ({reserved:'Reservada',released:'Liberada',expired:'Expirada',consumed:'Consumida'})[status]||status}
+function storageStatusClass(status){return status==='reserved'?'warn':status==='consumed'?'ok':'info'}
+async function loadStorage(){
+ const table=$('storage-reservation-table');
+ if(!accessToken){table.innerHTML='<tr><td colspan="6" class="empty">Inicia sesión para consultar tus reservas.</td></tr>';return}
+ table.innerHTML='<tr><td colspan="6" class="empty">Consultando almacenamiento…</td></tr>';
+ try{
+  const [quota,reservations]=await Promise.all([api('/v1/storage/quota'),api('/v1/storage/reservations')]);
+  $('storage-quota').textContent=quota.quota_gib+' GiB';
+  $('storage-used').textContent=quota.used_gib+' GiB';
+  $('storage-reserved').textContent=quota.reserved_gib+' GiB';
+  $('storage-available').textContent=quota.available_gib+' GiB';
+  table.innerHTML='';
+  if(!reservations.length){table.innerHTML='<tr><td colspan="6" class="empty">Todavía no hay reservas.</td></tr>';return}
+  reservations.forEach(item=>{
+   const row=document.createElement('tr');
+   const values=[item.id,item.requested_gib+' GiB',storageStatusLabel(item.status),new Date(item.created_at).toLocaleString(),new Date(item.expires_at).toLocaleString()];
+   values.forEach((value,index)=>{const cell=document.createElement('td');cell.textContent=value;if(index===2){const badge=document.createElement('span');badge.className='pill '+storageStatusClass(item.status);badge.textContent=value;cell.textContent='';cell.append(badge)}row.append(cell)});
+   const action=document.createElement('td');
+   if(item.status==='reserved'&&new Date(item.expires_at)>new Date()){
+    const button=document.createElement('button');button.type='button';button.textContent='Liberar';button.dataset.releaseReservation=item.id;action.append(button);
+   }else action.textContent='—';
+   row.append(action);table.append(row);
+  });
+ }catch(error){table.innerHTML='<tr><td colspan="6" class="empty">'+escapeHtml(error.message)+'</td></tr>'}
+}
+$('storage-reservation-form').addEventListener('submit',async event=>{
+ event.preventDefault();const button=event.submitter;button.disabled=true;
+ try{
+  const requested=Number($('storage-requested-gib').value);
+  const idempotencyKey=crypto.randomUUID?crypto.randomUUID():'cf-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  await api('/v1/storage/reservations',{method:'POST',headers:{'Idempotency-Key':idempotencyKey},body:JSON.stringify({requested_gib:requested})});
+  toast('Reserva de '+requested+' GiB creada (vence en 30 minutos)');await loadStorage();
+ }catch(error){toast('No se pudo reservar almacenamiento: '+error.message)}
+ finally{button.disabled=false}
+});
+$('storage-reservation-table').addEventListener('click',async event=>{
+ const button=event.target.closest('button[data-release-reservation]');if(!button)return;
+ button.disabled=true;
+ try{await api('/v1/storage/reservations/'+encodeURIComponent(button.dataset.releaseReservation),{method:'DELETE'});toast('Reserva liberada');await loadStorage()}
+ catch(error){toast('No se pudo liberar la reserva: '+error.message);button.disabled=false}
+});
+$('refresh-storage').addEventListener('click',loadStorage);
+
 async function loadCompute(){const g=$('compute-grid');try{const a=await api('/v1/compute/providers');g.innerHTML='';a.forEach(p=>{const c=document.createElement('article');c.className='card';const h=document.createElement('h3');h.textContent=p.name;const s=document.createElement('span');s.className='pill warn';s.textContent=p.state;const d=document.createElement('p');d.className='muted';d.textContent=p.description;const r=document.createElement('p');r.className='component-id';r.textContent='Requisitos: '+p.requires.join(', ');c.append(h,s,d,r);g.append(c)})}catch(e){g.textContent=e.message}}
 async function loadImages(){const b=$('image-table');try{const a=await api('/v1/images');b.innerHTML='';const sel=$('installation-image');sel.innerHTML='<option value="">ISO del catálogo</option>';a.forEach(i=>{const tr=document.createElement('tr');[i.name+' · '+i.slug,i.os_family+' '+i.os_version,i.architecture,i.artifact_type+' / '+i.disk_format,i.status].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});b.append(tr);if(i.artifact_type==='installer_iso'){const o=document.createElement('option');o.value=i.slug;o.textContent=i.name+' ('+i.status+')';sel.append(o)}})}catch(e){b.innerHTML='<tr><td colspan="5">'+escapeHtml(e.message)+'</td></tr>'}}
 $('image-form').addEventListener('submit',async e=>{e.preventDefault();const f=$('image-kind').value;try{await api('/v1/images',{method:'POST',body:JSON.stringify({slug:$('image-slug').value,name:$('image-name').value,os_family:$('image-family').value,os_version:$('image-version').value,architecture:$('image-arch').value,disk_format:f,artifact_type:f==='iso'?'installer_iso':'disk_image',source_url:$('image-url').value||null,checksum_sha256:$('image-checksum').value||null})});toast('Borrador registrado');e.target.reset();loadImages()}catch(x){toast(x.message)}});
@@ -204,7 +271,7 @@ $('refresh-compute').addEventListener('click',loadCompute);$('refresh-images').a
 
 async function diagnostics(){
   const target=$('diagnostic-rows');target.innerHTML='';
-  for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
+  for(const path of ['/health/live','/health/ready','/v1/system/info','/v1/instances','/v1/nodes','/v1/storage/quota','/v1/storage/reservations']){const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=path;const value=document.createElement('span');try{const data=await api(path);value.className='pill ok';value.textContent='OK · '+(Array.isArray(data)?data.length+' registros':'200')}catch(error){value.className='pill warn';value.textContent=error.message}row.append(name,value);target.append(row)}}
 
 $('refresh-overview').addEventListener('click',loadOverview);$('refresh-instances').addEventListener('click',loadInstances);$('refresh-nodes').addEventListener('click',loadNodes);$('run-diagnostics').addEventListener('click',diagnostics);loadOverview();
 </script>
