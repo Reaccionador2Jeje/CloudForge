@@ -110,9 +110,9 @@ Health and information endpoints:
 Initial instance registry endpoints (PostgreSQL required):
 
 - `GET /v1/instances` — list registered instance records.
-- `POST /v1/instances` — create a pending registry record using JSON: `{"name":"my-server"}`.
+- `POST /v1/instances` — create a pending VM specification using JSON: `{"name":"my-server","vcpu":2,"memory_mib":2048,"image_ref":"ubuntu/24.04"}`. The compute fields are validated and persisted; they do not provision a VM.
 
-The instance registry stores metadata only. It does **not** create or start virtual machines. Actual provisioning will be implemented after identity, authorization, and node-agent boundaries are in place.
+The instance registry stores a validated desired VM specification (name, vCPU, memory, and optional image reference). It does **not** create or start virtual machines. The image reference is only an identifier at this stage; an image catalog and actual provisioning are not implemented.
 
 Run quality checks:
 
