@@ -73,7 +73,10 @@ mod tests {
     #[test]
     fn qemu_provider_declares_safety_prerequisites() {
         let providers = provider_catalog();
-        let qemu = providers.iter().find(|provider| provider.id == "qemu-kvm").unwrap();
+        let qemu = providers
+            .iter()
+            .find(|provider| provider.id == "qemu-kvm")
+            .unwrap();
         for requirement in [
             "linux_host",
             "kvm_device",
