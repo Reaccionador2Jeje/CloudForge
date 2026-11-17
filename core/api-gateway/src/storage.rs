@@ -105,8 +105,6 @@ async fn ensure_quota_row(
     Ok(quota)
 }
 
-const USED_VOLUME_STATES: &str = "'planned', 'provisioning', 'ready', 'deleting'";
-
 pub async fn get_quota(
     State(state): State<AppState>,
     Extension(user): Extension<AuthenticatedUser>,
