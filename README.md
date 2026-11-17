@@ -65,6 +65,28 @@ The current API Gateway is a development foundation. It does not yet provision v
 
 ## Development
 
+Start the local PostgreSQL dependency (optional for health endpoints, required for instance persistence):
+
+\`\`\`bash
+docker compose up -d postgres
+\`\`\`
+
+Copy \`.env.example\` to \`.env\`, then start the API:
+
+\`\`\`bash
+cargo run -p cloudforge-api-gateway
+\`\`\`
+
+When \`DATABASE_URL\` is configured, the gateway applies SQL migrations at startup. The local Compose password is for development only; never expose this database or reuse that password in production.
+
+### Initial instance registry API
+
+- \`GET /v1/instances\` — list registered instance records.
+- \`POST /v1/instances\` — create a pending registry record using JSON: \`{"name":"my-server"}\`.
+
+These endpoints manage database records only. They do **not** create or start virtual machines yet. Real provisioning will be introduced after the identity, authorization, and node-agent boundaries are designed.
+
+
 Requirements:
 
 - Rust stable toolchain
