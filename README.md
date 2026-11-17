@@ -132,3 +132,16 @@ Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
 ## Project
 
 Developed by **Atdev Dev**.
+
+
+## Milestone 0.3 — Node Agent Foundation
+
+The standalone Rust crate `node/node-agent` collects a read-only host inventory and prints a versioned JSON snapshot:
+
+```bash
+cargo run -p cloudforge-node-agent
+```
+
+It reports operating system, kernel, architecture, logical CPU count, memory, and mounted filesystem capacity. It runs without elevated privileges, opens no network listener, executes no remote commands, and sends no data to the API Gateway. Inventory values are observations, not scheduler reservations.
+
+The authenticated registration and heartbeat protocol is intentionally deferred until node identity, credential rotation/revocation, TLS validation, and authorization are implemented. See [Node Agent architecture](docs/architecture/node-agent.md).
