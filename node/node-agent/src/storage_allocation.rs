@@ -58,11 +58,8 @@ impl StorageAllocationRequest {
             .used_gib
             .saturating_add(self.reserved_gib)
             .saturating_add(self.requested_gib);
-        let quota_remaining_after_gib = self
-            .quota_gib
-            .saturating_sub(projected_usage_gib);
-        let required_node_capacity_gib =
-            self.requested_gib.saturating_add(DEFAULT_RESERVE_GIB);
+        let quota_remaining_after_gib = self.quota_gib.saturating_sub(projected_usage_gib);
+        let required_node_capacity_gib = self.requested_gib.saturating_add(DEFAULT_RESERVE_GIB);
 
         let mut blockers = Vec::new();
         if projected_usage_gib > self.quota_gib {
@@ -136,11 +133,17 @@ mod tests {
     fn rejects_invalid_project_and_request() {
         let mut input = request();
         input.project_id = "not-a-uuid".to_owned();
-        assert_eq!(input.build_plan(), Err(StorageAllocationError::InvalidProjectId));
+        assert_eq!(
+            input.build_plan(),
+            Err(StorageAllocationError::InvalidProjectId)
+        );
 
         let mut input = request();
         input.requested_gib = 2049;
-        assert_eq!(input.build_plan(), Err(StorageAllocationError::InvalidRequestSize));
+        assert_eq!(
+            input.build_plan(),
+            Err(StorageAllocationError::InvalidRequestSize)
+        );
     }
 
     #[test]
