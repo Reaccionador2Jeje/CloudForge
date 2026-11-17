@@ -73,6 +73,9 @@ async fn system_info() -> Json<SystemInfo> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load a local .env file when present; process environment always takes precedence.
+    let _ = dotenvy::dotenv();
+
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"));
 
