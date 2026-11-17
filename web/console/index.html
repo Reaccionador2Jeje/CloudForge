@@ -24,8 +24,31 @@
   <main>
     <header class="top">
       <div><div class="eyebrow">Control plane / Development</div><h1 id="page-title">Resumen</h1><div class="muted">Panel de control de tu infraestructura CloudForge.</div></div>
-      <div class="status"><span id="api-dot" class="dot"></span><span id="api-label">Conectando con API…</span></div>
+      <div class="status"><span id="api-dot" class="dot"></span><span id="api-label">Conectando con API…</span><button id="logout-button" hidden>Cerrar sesión</button></div>
     </header>
+
+    <section class="split" id="auth-panel" aria-label="Autenticación local">
+      <article class="card">
+        <div class="section"><h2>Iniciar sesión</h2><span class="pill">Local</span></div>
+        <p class="muted">Accede con tu cuenta. El token se mantiene solo en memoria mientras esta página esté abierta.</p>
+        <form class="form" id="login-form">
+          <input id="login-email" type="email" maxlength="254" placeholder="Correo electrónico" autocomplete="username" required>
+          <input id="login-password" type="password" minlength="12" maxlength="128" placeholder="Contraseña" autocomplete="current-password" required>
+          <button type="submit">Iniciar sesión</button>
+        </form>
+      </article>
+      <article class="card">
+        <div class="section"><h2>Primer administrador</h2><span class="pill warn">Una sola vez</span></div>
+        <p class="muted">Solo funciona si no existen usuarios y el servidor tiene configurado CLOUDFORGE_BOOTSTRAP_TOKEN.</p>
+        <form class="form" id="bootstrap-form">
+          <input id="bootstrap-token" type="password" placeholder="Token de bootstrap" autocomplete="off" required>
+          <input id="bootstrap-email" type="email" maxlength="254" placeholder="Correo del administrador" autocomplete="email" required>
+          <input id="bootstrap-name" maxlength="80" placeholder="Nombre visible" autocomplete="name" required>
+          <input id="bootstrap-password" type="password" minlength="12" maxlength="128" placeholder="Contraseña (mínimo 12 caracteres)" autocomplete="new-password" required>
+          <button type="submit">Crear administrador</button>
+        </form>
+      </article>
+    </section>
 
     <div class="demo-banner" role="status"><strong>Modo demostración pública:</strong> esta consola es estática. No está conectada al API Gateway ni a una infraestructura real. Los valores de ejemplo están simulados y las operaciones están deshabilitadas.</div>
 
@@ -78,11 +101,38 @@
 <script>
 const DEMO_MODE = !(location.hostname === '127.0.0.1' || location.hostname === 'localhost') || location.port === '8787'; // Public Workers and Wrangler preview stay in demo mode; local API Gateway remains testable.
 const $=id=>document.getElementById(id);
-const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
+let accessToken=null;
+const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(accessToken?{Authorization:'Bearer '+accessToken}:{}),...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
 function toast(message){const el=$('toast');el.textContent=message;el.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display='none',3200)}
 function setApi(ok,label){$('api-dot').className='dot '+(ok?'ok':'bad');$('api-label').textContent=label;$('metric-api').textContent=ok?'Online':'Offline';}
 function showPage(page){document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('page-title').textContent=({overview:'Resumen',instances:'Instancias',nodes:'Nodos',diagnostics:'Diagnóstico',components:'Componentes'})[page];if(page==='instances')loadInstances();if(page==='nodes')loadNodes();if(page==='components')loadComponents()}
 document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.page)));
+
+function acceptSession(session){
+ accessToken=session.access_token;
+ $('auth-panel').hidden=true;
+ $('logout-button').hidden=false;
+ toast('Sesión iniciada: '+session.user.display_name);
+ loadOverview();loadInstances();loadNodes();
+}
+$('login-form').addEventListener('submit',async event=>{
+ event.preventDefault();const button=event.submitter;button.disabled=true;
+ try{const session=await api('/v1/auth/login',{method:'POST',body:JSON.stringify({email:$('login-email').value,password:$('login-password').value})});acceptSession(session)}
+ catch(error){toast('No se pudo iniciar sesión: '+error.message)}
+ finally{button.disabled=false}
+});
+$('bootstrap-form').addEventListener('submit',async event=>{
+ event.preventDefault();const button=event.submitter;button.disabled=true;
+ try{const session=await api('/v1/auth/bootstrap',{method:'POST',body:JSON.stringify({bootstrap_token:$('bootstrap-token').value,email:$('bootstrap-email').value,password:$('bootstrap-password').value,display_name:$('bootstrap-name').value})});$('bootstrap-token').value='';acceptSession(session)}
+ catch(error){toast('No se pudo crear el administrador: '+error.message)}
+ finally{button.disabled=false}
+});
+$('logout-button').addEventListener('click',async()=>{
+ try{await api('/v1/auth/logout',{method:'POST'})}catch(error){toast('La sesión ya no está activa: '+error.message)}
+ accessToken=null;$('logout-button').hidden=true;$('auth-panel').hidden=false;toast('Sesión cerrada');loadOverview();
+});
+if(DEMO_MODE)$('auth-panel').hidden=true;
+
 async function loadOverview(){
   if(DEMO_MODE){
     $('api-dot').className='dot'; $('api-label').textContent='Modo demo · API no conectada';
