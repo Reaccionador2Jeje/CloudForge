@@ -208,3 +208,19 @@ rollout gates.
 This milestone is documentation and truthful preflight reporting only. It does
 not add a network client, TLS session, enrollment endpoint, heartbeat endpoint,
 or remote node operations.
+
+
+## Milestone 0.8 — Console Design System and Component Catalog
+
+The console now uses a dedicated responsive stylesheet at
+`web/console/styles.css`, with expanded navigation, mobile layouts, cards,
+tables, status pills, component cards, search, and state filtering.
+
+The new **Components** screen reads `GET /v1/system/components` in local mode
+and displays the same catalog as clearly simulated sample data in public demo
+mode. The API catalog now tracks the control plane, node registry, identity,
+mTLS, compute, containers, scheduling, images, storage, networking,
+observability, audit, and client integrations.
+
+The catalog is a truthful implementation-status inventory. Components marked
+`planned` are not running services and do not provision infrastructure.
