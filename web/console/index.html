@@ -74,7 +74,7 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
-const DEMO_MODE=true; // Public static deployment: never send API requests from this console.
+const DEMO_MODE = !(location.hostname === '127.0.0.1' || location.hostname === 'localhost') || location.port === '8787'; // Public Workers and Wrangler preview stay in demo mode; local API Gateway remains testable.
 const $=id=>document.getElementById(id);
 const api=async(path,options={})=>{const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});if(!response.ok){let message='HTTP '+response.status;try{const body=await response.json();message=body.error||body.message||message}catch{}throw new Error(message)}return response.status===204?null:response.json()};
 function toast(message){const el=$('toast');el.textContent=message;el.style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.style.display='none',3200)}
