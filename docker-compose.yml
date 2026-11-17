@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: cloudforge
       POSTGRES_USER: cloudforge
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudforge-dev-only}
-    ports:
-      - "127.0.0.1:5432:5432"
     volumes:
       - cloudforge-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +14,33 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - cloudforge-private
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudforge-api
+    restart: unless-stopped
+    environment:
+      CLOUDFORGE_HOST: 0.0.0.0
+      CLOUDFORGE_PORT: 8080
+      CLOUDFORGE_DATABASE_MAX_CONNECTIONS: ${CLOUDFORGE_DATABASE_MAX_CONNECTIONS:-5}
+      DATABASE_URL: postgres://cloudforge:${POSTGRES_PASSWORD:-cloudforge-dev-only}@postgres:5432/cloudforge
+      CLOUDFORGE_BOOTSTRAP_TOKEN: ${CLOUDFORGE_BOOTSTRAP_TOKEN:-}
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cloudforge-private
 
 volumes:
   cloudforge-postgres-data:
+
+networks:
+  cloudforge-private:
+    driver: bridge
