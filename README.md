@@ -330,8 +330,16 @@ The API now provides an RBAC-protected PostgreSQL catalog for operating-system i
 
 - `GET /v1/images` lists registered image records.
 - `POST /v1/images` registers a draft image record (platform administrator only).
-- Metadata includes a stable slug, display name, OS family/version, architecture, disk format, optional HTTPS source, and optional SHA-256 checksum.
-- Supported architectures are `x86_64` and `aarch64`; disk formats are `qcow2` and `raw`.
+- Metadata includes a stable slug, display name, OS family/version, architecture, artifact type, disk format, optional HTTPS source, and optional SHA-256 checksum.
+- Supported architectures are `x86_64` and `aarch64`; disk images use `qcow2` or `raw`, while installation media use `iso` with artifact type `installer_iso`.
+- Migration `0006_image_installer_media.sql` adds draft catalog entries for Windows Server 2025 and Windows Server 2022 (x86_64 installer ISOs).
 - New records are always created as `draft`. A verified state requires a checksum at the database level.
 
 The catalog does not download, inspect, sign, verify, distribute, or boot images. The source URL and checksum are metadata supplied by an administrator and must not be treated as independently verified. VM provisioning still does not resolve `image_ref` against this catalog.
+
+
+### Windows Server image catalog
+
+Windows Server 2025 and Windows Server 2022 are now represented as draft installer-media entries (`windows-server/2025` and `windows-server/2022`). Installer ISO media are explicitly distinguished from prepared virtual disk images through the `artifact_type` field. The catalog does not host Microsoft installation media, download ISO files, provide activation, or grant Windows Server licenses. Operators must obtain installation media through Microsoft's authorized channels and comply with the applicable licensing terms.
+
+Windows guest provisioning still requires a future installation workflow, virtual hardware/firmware compatibility testing, VirtIO driver handling, license/activation policy, and image verification before production use.
