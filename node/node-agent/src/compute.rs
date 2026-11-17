@@ -77,6 +77,9 @@ pub fn collect_preflight() -> ComputePreflight {
         None
     };
 
+    let domain_inventory_available = domain_output.as_ref().is_some_and(|output| {
+        output.status.success() && String::from_utf8(output.stdout.clone()).is_ok()
+    });
     let domains = domain_output
         .as_ref()
         .filter(|output| output.status.success())
@@ -100,7 +103,7 @@ pub fn collect_preflight() -> ComputePreflight {
     if !libvirt_system_connection {
         blockers.push("libvirt_system_connection_unavailable");
     }
-    if domain_output.as_ref().is_some_and(|output| !output.status.success()) {
+    if libvirt_system_connection && !domain_inventory_available {
         blockers.push("libvirt_domain_inventory_failed");
     }
 
