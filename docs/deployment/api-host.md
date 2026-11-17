@@ -66,7 +66,7 @@ These are not the Cloudflare API deployment token. Never store them in Git or br
 
 ## 5. Verify the public console
 
-After Tunnel, Access, and Worker settings are active, open the CloudForge console. It should load the real component catalog and health status. Bootstrap the first administrator once, then sign in. Keep the bootstrap token private and remove it from the server environment after the first administrator has been created; recreate the API service after changing environment values:
+After Tunnel, Access, and Worker settings are active, open the CloudForge console. It should load the real component catalog and health status. Create a regular account from the **Crear cuenta** form, then sign in using its email and password. For the first platform administrator, use the separate one-time bootstrap form. Keep the bootstrap token private and remove it from the server environment after the first administrator has been created; recreate the API service after changing environment values:
 
 ```bash
 docker compose up -d --force-recreate api
