@@ -343,3 +343,8 @@ The catalog does not download, inspect, sign, verify, distribute, or boot images
 Windows Server 2025 and Windows Server 2022 are now represented as draft installer-media entries (`windows-server/2025` and `windows-server/2022`). Installer ISO media are explicitly distinguished from prepared virtual disk images through the `artifact_type` field. The catalog does not host Microsoft installation media, download ISO files, provide activation, or grant Windows Server licenses. Operators must obtain installation media through Microsoft's authorized channels and comply with the applicable licensing terms.
 
 Windows guest provisioning still requires a future installation workflow, virtual hardware/firmware compatibility testing, VirtIO driver handling, license/activation policy, and image verification before production use.
+
+
+### Windows Server guest installation profiles
+
+`GET /v1/compute/guest-profiles` exposes read-only planned profiles for Windows Server 2025 and 2022. They describe proposed UEFI/Q35, VirtIO storage/network, ISO installation stages, and licensing/verification requirements. The profiles explicitly report `readiness: planned` and `execution_enabled: false`; CloudForge does not yet install Windows or launch QEMU/KVM guests.
