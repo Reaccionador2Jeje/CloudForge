@@ -58,7 +58,7 @@ struct StoredUser {
     password_hash: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct AuthenticatedUser {
     pub id: Uuid,
     pub email: String,
