@@ -1,0 +1,13 @@
+[package]
+name = "cloudforge-node-agent"
+version = "0.3.0"
+description = "Read-only host inventory agent for CloudForge"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sysinfo = "0.30"
