@@ -134,3 +134,26 @@ The read-only endpoint `GET /v1/compute/guest-profiles` publishes planned profil
 The profile includes an installation-stage outline: validate authorized media, allocate resources, prepare virtual hardware, attach the ISO, boot Windows Setup, load storage/network drivers, complete installation, verify guest health and licensing, then produce a reusable image. `execution_enabled` is false and `readiness` is `planned`; the endpoint does not create disks, start QEMU, install Windows, fetch ISOs, or activate licenses.
 
 Before enabling execution, CloudForge still needs a trusted node agent and scheduler, tenant-scoped authorization, storage/network providers, safe media ingestion and checksum verification, driver provenance controls, firmware/device compatibility tests, and a compliant Windows Server licensing/activation process.
+
+
+## Installation plan registry
+
+The authenticated API exposes a persistent, non-executable installation-plan registry:
+
+- `GET /v1/compute/installations` lists plans.
+- `GET /v1/compute/installations/{id}` retrieves one plan.
+- `POST /v1/compute/installations` creates a plan for an existing instance, a supported Windows Server profile, and a matching installer ISO catalog entry.
+
+Example request:
+
+```json
+{
+  "instance_id": "EXISTING-INSTANCE-UUID",
+  "profile_id": "windows-server-2025",
+  "installer_image_slug": "windows-server/2025"
+}
+```
+
+New plans are stored with status `planned`, `execution_enabled: false`, and explicit blocker identifiers. Current blockers include the unavailable QEMU/KVM provider, unvalidated virtual hardware, missing VirtIO driver delivery, and the absent Windows Server licensing workflow. Draft installer media adds an `installer_media_not_verified` blocker. The API checks that the selected catalog entry matches the requested Windows Server version and is an x86_64 installer ISO.
+
+The registry records intent; it does not reserve resources, download media, create disks, start a VM, run Windows Setup, or claim installation progress. The database constraint prevents `execution_enabled` from being set to true in this milestone. A trusted worker, scheduler, tenant ownership checks, stage/event history, cancellation policy, and real QEMU/KVM integration are required before execution can be enabled.
