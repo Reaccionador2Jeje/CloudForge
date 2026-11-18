@@ -394,3 +394,12 @@ metadata-only, QEMU/KVM provisioning is planned, and no authenticated terminal
 session broker or WebSocket PTY gateway exists. OpenWeb Linux must not claim
 that a real Ubuntu host is available until those components are implemented
 and tested.
+
+
+## Real Hosting Platform
+
+CloudForge's product direction is real, multi-workload hosting on trusted compute infrastructure—not a mock cloud. The platform is designed for virtual machines, OCI containers, web applications, APIs, databases, background workers, game servers, and isolated development environments. Provider support will be enabled progressively and only when the underlying infrastructure is operational.
+
+See the [Hosting Platform Charter](docs/hosting-platform.md) for workload scope, security principles, current implementation truth, and delivery roadmap.
+
+**Current reality:** the API and console are control-plane foundations. VM/container provisioning, trusted remote nodes, physical storage allocation, and tenant-isolated networking are not yet operational. A metadata record is not a running server.
