@@ -15,7 +15,7 @@ fn component_catalog() -> Vec<ComponentStatus> {
     vec![
         ComponentStatus { id: "api-gateway", name: "API Gateway", state: "available", scope: "control-plane", description: "Axum HTTP API with health, system, instance, and node read endpoints." },
         ComponentStatus { id: "postgresql", name: "PostgreSQL", state: "optional", scope: "control-plane", description: "Persistent metadata when DATABASE_URL is configured." },
-        ComponentStatus { id: "web-console", name: "Web Console", state: "available", scope: "client", description: "Responsive local console and static public demo." },
+        ComponentStatus { id: "web-console", name: "Web Console", state: "available", scope: "client", description: "Cloud infrastructure management console; connects to the CloudForge control plane and reports actual capability states." },
         ComponentStatus { id: "node-agent", name: "Node Agent", state: "local-only", scope: "data-plane", description: "Read-only host inventory; no remote registration or command execution." },
         ComponentStatus { id: "node-identity", name: "Node Identity", state: "preflight-only", scope: "security", description: "Local identity file preflight; does not establish mTLS." },
         ComponentStatus { id: "node-registry", name: "Node Registry", state: "available", scope: "control-plane", description: "PostgreSQL node metadata and read-only listing endpoint." },
