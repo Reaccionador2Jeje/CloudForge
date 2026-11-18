@@ -330,25 +330,25 @@ This is the first compute control-plane foundation, not a hypervisor integration
 The API now provides an RBAC-protected PostgreSQL catalog for operating-system image metadata:
 
 - `GET /v1/images` lists registered image records.
-- `POST /v1/images` registers a draft image record (platform administrator only).
+- `POST /v1/images` registers a draft image record (platform administrators only).
 - Metadata includes a stable slug, display name, OS family/version, architecture, artifact type, disk format, optional HTTPS source, and optional SHA-256 checksum.
 - Supported architectures are `x86_64` and `aarch64`; disk images use `qcow2` or `raw`, while installation media use `iso` with artifact type `installer_iso`.
-- Migration `0006_image_installer_media.sql` adds draft catalog entries for Windows Server 2025 and Windows Server 2022 (x86_64 installer ISOs).
+- Migration `0006_image_installer_media.sql` adds draft entries for Windows Server 2025 and Windows Server 2022 installer ISOs.
 - New records are always created as `draft`. A verified state requires a checksum at the database level.
 
-The catalog does not download, inspect, sign, verify, distribute, or boot images. The source URL and checksum are metadata supplied by an administrator and must not be treated as independently verified. VM provisioning still does not resolve `image_ref` against this catalog.
+The catalog does not download, inspect, sign, verify, distribute, or boot images. The source URL and checksum are metadata supplied by an administrator and must not be treated as independently verified. VM provisioning still does not resolve `image_ref` against a catalog.
 
 
 ### Windows Server image catalog
 
-Windows Server 2025 and Windows Server 2022 are now represented as draft installer-media entries (`windows-server/2025` and `windows-server/2022`). Installer ISO media are explicitly distinguished from prepared virtual disk images through the `artifact_type` field. The catalog does not host Microsoft installation media, download ISO files, provide activation, or grant Windows Server licenses. Operators must obtain installation media through Microsoft's authorized channels and comply with the applicable licensing terms.
+Windows Server 2025 and Windows Server 2022 are represented as draft installer-media entries. Installer ISO media are distinguished from prepared virtual disk images through the `artifact_type` field. The catalog does not host Microsoft installation media, download ISO files, provide activation, or grant Windows Server licenses. Operators must obtain installation media through authorized channels and comply with licensing terms.
 
 Windows guest provisioning still requires a future installation workflow, virtual hardware/firmware compatibility testing, VirtIO driver handling, license/activation policy, and image verification before production use.
 
 
 ### Windows Server guest installation profiles
 
-`GET /v1/compute/guest-profiles` exposes read-only planned profiles for Windows Server 2025 and 2022. They describe proposed UEFI/Q35, VirtIO storage/network, ISO installation stages, and licensing/verification requirements. The profiles explicitly report `readiness: planned` and `execution_enabled: false`; CloudForge does not yet install Windows or launch QEMU/KVM guests.
+`GET /v1/compute/guest-profiles` exposes planned profiles for Windows Server 2025 and 2022. They describe proposed UEFI/Q35, VirtIO storage/network, and installation stages. The profiles report `readiness: planned` and `execution_enabled: false`; CloudForge does not install Windows or launch QEMU/KVM guests.
 
 
 ### Installation plan API
@@ -359,86 +359,38 @@ Authenticated installation-plan endpoints are available:
 - `GET /v1/compute/installations/{id}`
 - `POST /v1/compute/installations`
 
-Create requests reference an existing `instance_id`, a Windows Server profile (`windows-server-2025` or `windows-server-2022`), and a matching installer catalog slug. Records remain `planned`, expose blocker identifiers, and enforce `execution_enabled = false`. This is a persistent plan registry only; no hypervisor, worker, disk creation, media download, or guest installation is active.
+Plans remain `planned`, expose blocker identifiers, and enforce `execution_enabled: false`. This is a persistent plan registry only; no hypervisor, worker, disk creation, media download, or guest installation is active.
 
 
 ### QEMU/KVM host preflight
 
-The Node Agent includes an initial local read-only QEMU/libvirt adapter.
-Run `cloudforge-node-agent --compute-preflight` on a Linux compute host to
-check `/dev/kvm`, the QEMU x86_64 binary, `virsh`, the system libvirt
-connection, and defined domain UUIDs, names, and runtime states. The versioned
-JSON report includes a domain inventory availability flag and exits with code
-2 if a required check fails.
-
-This is not VM provisioning and does not perform lifecycle operations or
-change host configuration. Node enrollment/mTLS, tenant isolation, scheduler,
-storage, and networking must be completed before remote VM management is
-enabled. See [Compute architecture](docs/architecture/compute.md).
+The Node Agent includes a local read-only QEMU/libvirt preflight. It checks Linux, `/dev/kvm`, QEMU, `virsh`, the system libvirt connection, and defined domain states. This is not VM provisioning. Node enrollment/mTLS, tenant isolation, scheduler, storage, and networking must be completed before remote VM management is enabled. See [Compute architecture](docs/architecture/compute.md).
 
 
+### Storage capacity and pool preflight
 
+The Node Agent can inspect requested disk capacity and the default storage pool without changing the host. These commands do not reserve space, create directories, or create disk images. See [Compute architecture](docs/architecture/compute.md).
 
-
-### Storage capacity check
-
-Check the filesystem capacity for a requested disk (including a 10 GiB reserve):
-
-```bash
-cloudforge-node-agent --storage-capacity 40
-```
-
-This read-only estimate does not reserve space or create a disk.
-See [Compute architecture](docs/architecture/compute.md).
-
-### Storage pool preflight
-
-Inspect the default pool and `qemu-img` availability without changing the host:
-
-```bash
-cloudforge-node-agent --storage-preflight
-```
-
-This is read-only and reports blockers; it does not create the pool or disk images.
-See [Compute architecture](docs/architecture/compute.md).
 
 ### Storage quota and volume metadata API
 
-The authenticated API now provides personal storage quota accounting and
-30-minute idempotent reservations:
+The authenticated API provides personal storage quota accounting and idempotent reservations, plus planned volume metadata. These are control-plane accounting records, not physical storage provisioning. No QCOW2/RAW file is created and no node capacity is reserved. See [Storage quota and volume API](docs/storage-quotas.md).
 
-- `GET /v1/storage/quota`
-- `GET /v1/storage/reservations`
-- `POST /v1/storage/reservations` (requires an `Idempotency-Key` header)
-- `DELETE /v1/storage/reservations/{id}`
-- `GET /v1/storage/volumes`
-- `POST /v1/storage/volumes` (converts an active reservation into a planned volume)
-- `DELETE /v1/storage/volumes/{id}` (planned/failed metadata only)
-
-New accounts receive a default 100 GiB quota. Planned volume records count
-against quota, and reservation-to-volume conversion is transactional and
-retry-safe. The console can create reservations and volume metadata plans.
-
-**This is not physical storage provisioning.** No QCOW2/RAW file is created,
-no `qemu-img` command is run, and no node capacity or provider is reserved.
-Real ZFS/Ceph integration, snapshots, backup/restore, and a trusted storage
-lifecycle executor remain pending. See
-[Storage quota and volume API](docs/storage-quotas.md).
 
 ### Combined VM provisioning plan
 
-The Node Agent can compose the validated QCOW2 disk plan and matching Q35/KVM
-domain XML into one non-executable JSON plan:
+The Node Agent can compose a validated QCOW2 disk plan and matching Q35/KVM domain XML into one non-executable JSON plan. The result includes `execution_enabled: false`; it does not create disks or VMs, run QEMU, or modify the host. See [Compute architecture](docs/architecture/compute.md).
 
-```bash
-cloudforge-node-agent --plan-vm <name> <vcpu> <memory-mib> <disk-name> <disk-size-gib>
-```
 
-The result includes explicit blockers and `execution_enabled: false`. It
-does not create disks or VMs, run QEMU, or modify the host. See
-[Compute architecture](docs/architecture/compute.md).
+## OpenWeb Linux terminal integration
 
-The Node Agent also provides a validation-only libvirt XML renderer via
-`cloudforge-node-agent --render-domain-xml <name> <vcpu> <memory-mib> <disk-path>`.
-It emits a typed Q35/KVM definition for a QCOW2 file within the CloudForge
-managed pool; it does not create disks, define domains, or start VMs.
+OpenWeb Linux is planned to use CloudForge as its control plane and a
+dedicated Ubuntu 24.04 guest as its execution environment. The architecture,
+proposed terminal-session API, security requirements, and delivery gates are
+documented in [OpenWeb Linux terminal integration](docs/architecture/terminal-sessions.md).
+
+This integration is **not active yet**: the current instance registry is
+metadata-only, QEMU/KVM provisioning is planned, and no authenticated terminal
+session broker or WebSocket PTY gateway exists. OpenWeb Linux must not claim
+that a real Ubuntu host is available until those components are implemented
+and tested.
