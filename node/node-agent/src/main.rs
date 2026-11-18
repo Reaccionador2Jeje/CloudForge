@@ -2,6 +2,7 @@ mod compute;
 pub mod domain_xml;
 mod identity;
 mod inventory;
+mod runtime;
 pub mod provisioning;
 pub mod storage;
 pub mod storage_allocation;
@@ -15,6 +16,19 @@ use inventory::HostInventory;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments: Vec<String> = env::args().collect();
+    if arguments
+        .get(1)
+        .is_some_and(|argument| argument == "--runtime-profile")
+    {
+        if arguments.len() != 2 {
+            eprintln!("usage: cloudforge-node-agent --runtime-profile");
+            std::process::exit(64);
+        }
+        let profile = runtime::collect_profile();
+        println!("{}", serde_json::to_string_pretty(&profile)?);
+        return Ok(());
+    }
+
     if arguments
         .get(1)
         .is_some_and(|argument| argument == "--plan-storage-allocation")
