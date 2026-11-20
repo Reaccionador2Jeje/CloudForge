@@ -56,3 +56,41 @@ This is a coordination plan, not a claim that integrations are already implement
 - Planned: design exists; implementation is not present.
 - Blocked: depends on an unresolved technical or external requirement.
 - Unverified: not inspected or tested in the current session.
+
+## Repository work plans
+
+The following companion documents were added as planning artifacts. They do not imply that the proposed tests or integrations have already been implemented.
+
+| Repository | Work plan |
+| --- | --- |
+| CloudForge | This roadmap |
+| atdev-db | [Integration contract](../../atdev-db/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| atdev-cloud | [Integration plan](../../atdev-cloud/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| atdev-accounts | [Identity integration](../../atdev-accounts/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Memingo | [Runtime integration](../../Memingo/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Memingo-IDE | [IDE integration](../../Memingo-IDE/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Walletie | [Wallet integration](../../Walletie/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Joynexa | [Platform integration](../../Joynexa/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| MemeCode | [Agent safety and migration](../../MemeCode/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Memer | [Model/API integration](../../Memer/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| NEXORA | [Terminal integration](../../NEXORA/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| DistroBoxer | [Runtime integration](../../DistroBoxer/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| openweb-linux | [Simulation boundaries](../../openweb-linux/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| NEXORA-OS | [OS build integration](../../NEXORA-OS/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| FileRadar | [Read-only scan contract](../../FileRadar/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| ForgeKit | [Diagnostics contract](../../ForgeKit/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| LibreCoding | [Learning platform integration](../../LibreCoding/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Atdev-OS-Hub | [Supabase/RLS integration](../../Atdev-OS-Hub/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| CodePaws | [Desktop build integration](../../CodePaws/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Void-Memingo | [CLI/platform integration](../../Void-Memingo/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Node.mgo- | [Runtime compatibility plan](../../Node.mgo-/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Gold-Diamond-Browser | [Browser integration](../../Gold-Diamond-Browser/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| Lapislazuli-WebEngine | [Engine milestone plan](../../Lapislazuli-WebEngine/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+| AtDev-Billing-EcoSystem- | [Billing scope and safety](../../AtDev-Billing-EcoSystem-/blob/main/docs/ECOSYSTEM-INTEGRATION.md) |
+
+## Repositories not found during this pass
+
+- AtDev Rooting: no repository with this exact name was visible in the account repository listing.
+- GitVoid: no repository with this exact name was visible in the account repository listing. It may be hosted on another forge or under a different name.
+
+Add these repositories to the inventory once their canonical URLs are confirmed.
